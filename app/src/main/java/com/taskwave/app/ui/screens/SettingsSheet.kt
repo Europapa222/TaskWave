@@ -197,7 +197,86 @@ fun SettingsSheet(
                     fontSize = 13.sp,
                     lineHeight = 19.sp
                 )
+                WidgetPreviewCards()
             }
         }
+    }
+}
+
+@Composable
+private fun WidgetPreviewCards() {
+    val scheme = MaterialTheme.colorScheme
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        WidgetPreview(stringResource(R.string.widget_title)) {
+            Text(stringResource(R.string.widget_preview_today_count), color = scheme.onPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            listOf(
+                stringResource(R.string.widget_preview_task_1),
+                stringResource(R.string.widget_preview_task_2)
+            ).forEach {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(scheme.onPrimary.copy(alpha = 0.16f))
+                        .padding(horizontal = 10.dp, vertical = 7.dp)
+                ) {
+                    Text(it, color = scheme.onPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+
+        WidgetPreview(stringResource(R.string.widget_focus_title)) {
+            Text(stringResource(R.string.widget_preview_focus_badge), color = scheme.onPrimary.copy(alpha = 0.82f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(6.dp))
+            Text(stringResource(R.string.widget_preview_task_1), color = scheme.onPrimary, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
+            Text(stringResource(R.string.widget_preview_focus_meta), color = scheme.onPrimary.copy(alpha = 0.82f), fontSize = 11.sp)
+        }
+
+        WidgetPreview(stringResource(R.string.widget_progress_title)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                WidgetMiniStat(stringResource(R.string.stat_active), "5")
+                WidgetMiniStat(stringResource(R.string.stat_done), "12")
+            }
+            Spacer(Modifier.height(8.dp))
+            LinearProgressIndicator(
+                progress = { 0.7f },
+                modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(99.dp)),
+                color = scheme.onPrimary,
+                trackColor = scheme.onPrimary.copy(alpha = 0.25f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun WidgetPreview(title: String, content: @Composable ColumnScope.() -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(scheme.primary)
+            .padding(14.dp)
+    ) {
+        Text(title, color = scheme.onPrimary, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
+        Spacer(Modifier.height(8.dp))
+        content()
+    }
+}
+
+@Composable
+private fun RowScope.WidgetMiniStat(label: String, value: String) {
+    val scheme = MaterialTheme.colorScheme
+    Column(
+        modifier = Modifier
+            .weight(1f)
+            .clip(RoundedCornerShape(12.dp))
+            .background(scheme.onPrimary.copy(alpha = 0.16f))
+            .padding(10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(value, color = scheme.onPrimary, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+        Text(label, color = scheme.onPrimary.copy(alpha = 0.82f), fontSize = 10.sp)
     }
 }

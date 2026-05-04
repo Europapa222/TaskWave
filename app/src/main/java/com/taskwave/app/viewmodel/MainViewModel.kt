@@ -182,9 +182,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun splitTask(id: String) {
+        if (!_state.value.smartAiEnabled) return
         val newItems = _state.value.items.map { task ->
             if (task.id == id && task.subtasks.isEmpty()) {
-                task.copy(subtasks = SmartSubtaskGenerator.generate(task.title, task.description, _state.value.smartAiEnabled))
+                task.copy(subtasks = SmartSubtaskGenerator.generate(task.title, task.description))
+            } else {
+                task
+            }
+        }
+        _state.update { it.copy(items = newItems) }
+        persistTasks(newItems)
+    }
+
+    fun addManualSubtasks(taskId: String, rawSteps: String) {
+        val steps = rawSteps
+            .split("\n", ";", ",")
+            .map { it.trim().trim('-', '•', '*', '—', ' ') }
+            .filter { it.isNotBlank() }
+            .distinct()
+        if (steps.isEmpty()) return
+        val newItems = _state.value.items.map { task ->
+            if (task.id == taskId) {
+                task.copy(subtasks = task.subtasks + steps.map { SubTask(title = it) })
             } else {
                 task
             }
@@ -352,10 +371,10 @@ private fun dayIndex(time: Long): Long {
 }
 
 private object SmartSubtaskGenerator {
-    fun generate(title: String, description: String, smartAiEnabled: Boolean): List<SubTask> {
+    fun generate(title: String, description: String): List<SubTask> {
         val text = title.trim()
         val lower = "$title $description".lowercase(Locale.getDefault())
-        val steps = if (smartAiEnabled) smartSteps(text, description, lower) else fallbackSteps(text)
+        val steps = smartSteps(text, description, lower)
         return steps.map { SubTask(title = it) }
     }
 
@@ -460,6 +479,13 @@ private object SmartSubtaskGenerator {
                 "Подготовить документы и вопросы",
                 "Записаться или купить нужное",
                 "Записать рекомендации"
+            )),
+            AiCategory(listOf("гуля", "прогул", "walk", "friend", "друг", "подруг", "над", "встрет"), listOf(
+                "Договориться о месте и времени",
+                "Проверить погоду и одеться удобно",
+                "Взять нужные мелочи: ключи, телефон, воду",
+                "Встретиться и спокойно провести время",
+                "Вернуться домой без спешки"
             ))
         )
         return categories
@@ -472,13 +498,12 @@ private object SmartSubtaskGenerator {
     }
 
     private fun fallbackSteps(title: String): List<String> {
-        val action = title.split(" ").firstOrNull().orEmpty().replaceFirstChar { it.lowercase(Locale.getDefault()) }
-        val objectName = title.removePrefix(title.split(" ").firstOrNull().orEmpty()).trim().ifBlank { title }
         return listOf(
-            "Понять, какой результат нужен",
-            "Подготовить всё для задачи: $objectName",
-            if (action.isNotBlank()) "Начать: $action" else "Сделать первый маленький шаг",
-            "Проверить результат и завершить"
+            "Понять, что должно получиться",
+            "Подготовить всё нужное заранее",
+            "Сделать задачу без лишней спешки",
+            "Проверить, что ничего не забыто",
+            "Отметить результат и закрыть задачу"
         )
     }
 
