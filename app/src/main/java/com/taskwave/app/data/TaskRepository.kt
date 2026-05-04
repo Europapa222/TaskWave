@@ -39,7 +39,7 @@ class TaskRepository(private val context: Context) {
     }
 
     private fun defaultTasks(): List<TodoItem> = emptyList()
-    private fun defaultFolders(): List<TaskFolder> = listOf(TaskFolder(id = "inbox", name = "Inbox", colorIndex = 0))
+    private fun defaultFolders(): List<TaskFolder> = emptyList()
 
     private fun serialize(tasks: List<TodoItem>): String {
         val array = JSONArray()
@@ -105,7 +105,7 @@ class TaskRepository(private val context: Context) {
                 isDone = parts[3].toBoolean(),
                 priority = Priority.valueOf(parts[4]),
                 createdAt = parts[5].toLongOrNull() ?: System.currentTimeMillis(),
-                folderId = "inbox"
+                folderId = null
             )
         }
     }

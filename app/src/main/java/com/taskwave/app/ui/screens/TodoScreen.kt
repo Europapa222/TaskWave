@@ -37,6 +37,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -50,6 +52,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -299,7 +302,7 @@ private fun FolderRow(
                 selected = selectedFolderId == folder.id,
                 color = folderColors[folder.colorIndex % folderColors.size],
                 onClick = { onSelect(folder.id) },
-                onDelete = if (folder.id == "inbox") null else ({ onDeleteFolder(folder.id) })
+                onDelete = { onDeleteFolder(folder.id) }
             )
         }
         FilterChip(
@@ -626,7 +629,31 @@ fun AddTaskDialog(
     var dueAt by remember { mutableStateOf<Long?>(null) }
     var reminderEnabled by remember { mutableStateOf(false) }
     var reminderAt by remember { mutableStateOf<Long?>(null) }
+    var showDatePicker by remember { mutableStateOf(false) }
     val scheme = MaterialTheme.colorScheme
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dueAt ?: System.currentTimeMillis())
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { selected ->
+                            dueAt = endOfDay(selected)
+                            if (reminderEnabled) reminderAt = dueAt?.minus(60 * 60 * 1000L)
+                        }
+                        showDatePicker = false
+                    }
+                ) { Text(stringResource(R.string.add), fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.cancel)) }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -699,6 +726,18 @@ fun AddTaskDialog(
                             shape = RoundedCornerShape(10.dp)
                         )
                     }
+                    FilterChip(
+                        selected = false,
+                        onClick = { showDatePicker = true },
+                        label = {
+                            Text(
+                                dueAt?.let { stringResource(R.string.deadline_calendar_selected, formatDate(it)) }
+                                    ?: stringResource(R.string.deadline_calendar),
+                                fontSize = 12.sp
+                            )
+                        },
+                        shape = RoundedCornerShape(10.dp)
+                    )
                     FilterChip(
                         selected = dueAt == null,
                         onClick = {
@@ -823,11 +862,21 @@ private fun dateOptions(): List<DateOption> {
 private fun endOfDay(daysFromNow: Int): Long {
     val calendar = Calendar.getInstance()
     calendar.add(Calendar.DAY_OF_YEAR, daysFromNow)
-    calendar.set(Calendar.HOUR_OF_DAY, 23)
-    calendar.set(Calendar.MINUTE, 59)
-    calendar.set(Calendar.SECOND, 0)
-    calendar.set(Calendar.MILLISECOND, 0)
-    return calendar.timeInMillis
+    return calendar.endOfDayMillis()
+}
+
+private fun endOfDay(timeMillis: Long): Long {
+    val calendar = Calendar.getInstance()
+    calendar.timeInMillis = timeMillis
+    return calendar.endOfDayMillis()
+}
+
+private fun Calendar.endOfDayMillis(): Long {
+    set(Calendar.HOUR_OF_DAY, 23)
+    set(Calendar.MINUTE, 59)
+    set(Calendar.SECOND, 0)
+    set(Calendar.MILLISECOND, 0)
+    return timeInMillis
 }
 
 private fun formatDate(time: Long): String {

@@ -11,7 +11,6 @@
     <string name="onboarding_2_desc">Mark tasks as high, medium or low priority so you always know what matters most.</string>
     <string name="onboarding_3_title">Track your progress</string>
     <string name="onboarding_3_desc">See how many tasks you have completed and stay motivated to finish what you started.</string>
-    <string name="onboarding_text_only">Clear text onboarding</string>
 
     <!-- Main screen -->
     <string name="my_tasks">My Tasks</string>
@@ -58,6 +57,8 @@
     <string name="deadline_today">Today</string>
     <string name="deadline_tomorrow">Tomorrow</string>
     <string name="deadline_week">This week</string>
+    <string name="deadline_calendar">Pick date</string>
+    <string name="deadline_calendar_selected">Date: %1$s</string>
     <string name="no_deadline">No deadline</string>
     <string name="reminder">Reminder</string>
     <string name="reminder_optional">Optional: notify before the deadline</string>

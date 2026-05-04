@@ -145,7 +145,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun deleteFolder(id: String) {
-        if (id == "inbox") return
         val folders = _state.value.folders.filterNot { it.id == id }
         val tasks = _state.value.items.map { if (it.folderId == id) it.copy(folderId = null) else it }
         _state.update { it.copy(folders = folders, items = tasks, selectedFolderId = null) }
