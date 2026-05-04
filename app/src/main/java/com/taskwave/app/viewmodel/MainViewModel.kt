@@ -292,15 +292,23 @@ private data class SmartInputResult(
 )
 
 private fun parseSmartInput(raw: String, description: String): SmartInputResult {
-    val lower = "$raw $description".lowercase(Locale.getDefault())
+    val lowerTitle = raw.lowercase(Locale.getDefault())
+    val lowerAll = "$raw $description".lowercase(Locale.getDefault())
+    val hasTime = Regex("""\b\d{1,2}[:.]\d{2}\b""").containsMatchIn(lowerTitle)
+    val hasDueIntent = hasTime || containsAny(
+        lowerTitle,
+        listOf("срок", "дедлайн", "deadline", "due", "до ", "к ", "на ", "by ", "until ")
+    )
     val date = when {
-        containsAny(lower, listOf("послезавтра", "after tomorrow")) -> daysFromNow(2)
-        containsAny(lower, listOf("завтра", "tomorrow")) -> daysFromNow(1)
-        containsAny(lower, listOf("сегодня", "today")) -> daysFromNow(0)
-        containsAny(lower, listOf("на неделе", "this week")) -> daysFromNow(7)
+        !hasDueIntent -> null
+        containsAny(lowerTitle, listOf("послезавтра", "after tomorrow")) -> daysFromNow(2)
+        containsAny(lowerTitle, listOf("завтра", "tomorrow")) -> daysFromNow(1)
+        containsAny(lowerTitle, listOf("сегодня", "today")) -> daysFromNow(0)
+        containsAny(lowerTitle, listOf("на неделе", "this week")) -> daysFromNow(7)
+        hasTime -> daysFromNow(0)
         else -> null
     }
-    val time = Regex("""(\d{1,2})[:.](\d{2})""").find(lower)?.let {
+    val time = Regex("""(\d{1,2})[:.](\d{2})""").find(lowerTitle)?.let {
         it.groupValues[1].toIntOrNull() to it.groupValues[2].toIntOrNull()
     }
     val dueAt = date?.let { calendar ->
@@ -316,9 +324,9 @@ private fun parseSmartInput(raw: String, description: String): SmartInputResult 
         calendar.timeInMillis
     }
     val reminderAt = dueAt?.takeIf {
-        containsAny(lower, listOf("напомни", "напомнить", "напоминание", "remind", "notification", "уведом"))
+        containsAny(lowerAll, listOf("напомни", "напомнить", "напоминание", "remind", "notification", "уведом"))
     }?.let { it - 60 * 60 * 1000L }
-    return SmartInputResult(cleanSmartTitle(raw), dueAt, reminderAt)
+    return SmartInputResult(if (dueAt == null) raw.trim() else cleanSmartTitle(raw), dueAt, reminderAt)
 }
 
 private fun cleanSmartTitle(raw: String): String {
