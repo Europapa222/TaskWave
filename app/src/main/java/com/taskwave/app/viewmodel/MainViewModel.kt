@@ -295,16 +295,12 @@ private fun parseSmartInput(raw: String, description: String): SmartInputResult 
     val lowerTitle = raw.lowercase(Locale.getDefault())
     val lowerAll = "$raw $description".lowercase(Locale.getDefault())
     val hasTime = Regex("""\b\d{1,2}[:.]\d{2}\b""").containsMatchIn(lowerTitle)
-    val hasDueIntent = hasTime || containsAny(
-        lowerTitle,
-        listOf("срок", "дедлайн", "deadline", "due", "до ", "к ", "на ", "by ", "until ")
-    )
     val date = when {
-        !hasDueIntent -> null
         containsAny(lowerTitle, listOf("послезавтра", "after tomorrow")) -> daysFromNow(2)
         containsAny(lowerTitle, listOf("завтра", "tomorrow")) -> daysFromNow(1)
         containsAny(lowerTitle, listOf("сегодня", "today")) -> daysFromNow(0)
         containsAny(lowerTitle, listOf("на неделе", "this week")) -> daysFromNow(7)
+        containsAny(lowerTitle, listOf("срок", "дедлайн", "deadline", "due", "до ", "к ", "на ", "by ", "until ")) -> daysFromNow(0)
         hasTime -> daysFromNow(0)
         else -> null
     }
@@ -359,11 +355,20 @@ private object SmartSubtaskGenerator {
     fun generate(title: String, description: String, smartAiEnabled: Boolean): List<SubTask> {
         val text = title.trim()
         val lower = "$title $description".lowercase(Locale.getDefault())
-        val steps = if (smartAiEnabled) smartSteps(text, lower) else fallbackSteps(text)
+        val steps = if (smartAiEnabled) smartSteps(text, description, lower) else fallbackSteps(text)
         return steps.map { SubTask(title = it) }
     }
 
-    private fun smartSteps(title: String, lower: String): List<String> {
+    private fun smartSteps(title: String, description: String, lower: String): List<String> {
+        val descriptionSteps = extractDescriptionSteps(description)
+        if (descriptionSteps.size >= 2) {
+            return buildList {
+                add("Понять результат задачи: $title")
+                addAll(descriptionSteps.take(5))
+                add("Проверить итог и отметить задачу выполненной")
+            }.take(6)
+        }
+
         val categories = listOf(
             AiCategory(listOf("куп", "магаз", "продукт", "shopping", "grocer", "buy"), listOf(
                 "Проверить, что именно нужно купить",
@@ -427,6 +432,34 @@ private object SmartSubtaskGenerator {
                 "Подготовить ингредиенты",
                 "Приготовить по шагам",
                 "Убрать кухню после готовки"
+            )),
+            AiCategory(listOf("почин", "ремонт", "fix", "repair", "слом", "баг", "bug"), listOf(
+                "Понять, что именно не работает",
+                "Найти причину проблемы",
+                "Подготовить нужные инструменты или файлы",
+                "Исправить проблему",
+                "Проверить, что всё работает"
+            )),
+            AiCategory(listOf("документ", "паспорт", "справк", "заявл", "document", "form"), listOf(
+                "Понять, какой документ нужен",
+                "Собрать данные и файлы",
+                "Заполнить форму без ошибок",
+                "Проверить перед отправкой",
+                "Отправить или сохранить документ"
+            )),
+            AiCategory(listOf("поезд", "путеше", "trip", "travel", "билет", "отель"), listOf(
+                "Определить даты и место",
+                "Проверить билеты/маршрут",
+                "Подготовить документы и вещи",
+                "Забронировать нужное",
+                "Сохранить подтверждения"
+            )),
+            AiCategory(listOf("врач", "doctor", "аптек", "лекар", "здоров"), listOf(
+                "Понять симптом или цель визита",
+                "Найти врача/аптеку и удобное время",
+                "Подготовить документы и вопросы",
+                "Записаться или купить нужное",
+                "Записать рекомендации"
             ))
         )
         return categories
@@ -447,6 +480,22 @@ private object SmartSubtaskGenerator {
             if (action.isNotBlank()) "Начать: $action" else "Сделать первый маленький шаг",
             "Проверить результат и завершить"
         )
+    }
+
+    private fun extractDescriptionSteps(description: String): List<String> {
+        return description
+            .split("\n", ";", ",")
+            .map { it.trim().trim('-', '•', '*', '—', ' ') }
+            .filter { it.length >= 3 }
+            .map { item ->
+                val cleaned = item.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+                if (cleaned.startsWith("Сделать", ignoreCase = true) || cleaned.startsWith("Проверить", ignoreCase = true)) {
+                    cleaned
+                } else {
+                    "Сделать: $cleaned"
+                }
+            }
+            .distinct()
     }
 
     private data class AiCategory(val keywords: List<String>, val steps: List<String>)
