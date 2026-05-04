@@ -80,7 +80,6 @@
     <string name="motivation_stats">Streak %1$d days · %2$d points · Level %3$d · Today %4$d</string>
     <string name="anti_overload_title">Anti-overload mode</string>
     <string name="anti_overload_subtitle">Too many tasks. TaskWave shows only the 3 most important for today.</string>
-    <string name="smart_input_hint">Smart input: “buy groceries tomorrow 18:00 remind”</string>
     <string name="split_task">Break into steps</string>
     <string name="add">Add</string>
     <string name="cancel">Cancel</string>
@@ -92,6 +91,9 @@
     <string name="dark_mode_sub">Follow system theme</string>
     <string name="language">Language</string>
     <string name="language_system">System default</string>
+    <string name="smart_ai">AI assistant</string>
+    <string name="smart_ai_title">Smart input and task splitting</string>
+    <string name="smart_ai_subtitle">Parse dates from task text and make smarter subtasks from the title and description.</string>
     <string name="widgets">Widgets</string>
     <string name="widgets_help_title">How to add a TaskWave widget</string>
     <string name="widgets_help_body">1. Long-press an empty place on your home screen.\n2. Tap Widgets.\n3. Find TaskWave.\n4. Choose Today, Focus task, or Progress and drag it to the screen.</string>

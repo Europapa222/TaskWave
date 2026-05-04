@@ -36,6 +36,7 @@ data class AppUiState(
     val showSettings: Boolean = false,
     val onboardingDone: Boolean = false,
     val darkModeOverride: String = "system",
+    val smartAiEnabled: Boolean = true,
     val isLoading: Boolean = true
 ) {
     val filteredItems: List<TodoItem>
@@ -82,8 +83,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         viewModelScope.launch {
-            combine(prefs.onboardingDone, prefs.darkModeOverride, repo.tasks, repo.folders, repo.productivity) { done, dark, tasks, folders, productivity ->
-                AppUiState(onboardingDone = done, darkModeOverride = dark, items = tasks, folders = folders, productivity = productivity, isLoading = false)
+            val appPrefs = combine(prefs.onboardingDone, prefs.darkModeOverride, prefs.smartAiEnabled) { done, dark, smartAiEnabled ->
+                Triple(done, dark, smartAiEnabled)
+            }
+            combine(appPrefs, repo.tasks, repo.folders, repo.productivity) { appPrefsValue, tasks, folders, productivity ->
+                AppUiState(
+                    onboardingDone = appPrefsValue.first,
+                    darkModeOverride = appPrefsValue.second,
+                    smartAiEnabled = appPrefsValue.third,
+                    items = tasks,
+                    folders = folders,
+                    productivity = productivity,
+                    isLoading = false
+                )
             }.collect { newState ->
                 _state.update {
                     newState.copy(
@@ -117,12 +129,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun addItem(title: String, description: String, priority: Priority, folderId: String?, dueAt: Long?, reminderAt: Long?) {
         if (title.isBlank()) return
-        val parsed = parseSmartInput(title)
+        val trimmedDescription = description.trim()
+        val parsed = if (_state.value.smartAiEnabled) {
+            parseSmartInput(title, trimmedDescription)
+        } else {
+            SmartInputResult(title.trim(), null, null)
+        }
         val finalDueAt = dueAt ?: parsed.dueAt
         val finalReminderAt = reminderAt ?: parsed.reminderAt
         val task = TodoItem(
             title = parsed.title,
-            description = description.trim(),
+            description = trimmedDescription,
             priority = priority,
             folderId = folderId,
             dueAt = finalDueAt,
@@ -167,7 +184,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun splitTask(id: String) {
         val newItems = _state.value.items.map { task ->
             if (task.id == id && task.subtasks.isEmpty()) {
-                task.copy(subtasks = SmartSubtaskGenerator.generate(task.title))
+                task.copy(subtasks = SmartSubtaskGenerator.generate(task.title, task.description, _state.value.smartAiEnabled))
             } else {
                 task
             }
@@ -225,6 +242,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _state.update { it.copy(darkModeOverride = value) }
         }
     }
+
+    fun setSmartAiEnabled(value: Boolean) {
+        viewModelScope.launch {
+            prefs.setSmartAiEnabled(value)
+            _state.update { it.copy(smartAiEnabled = value) }
+        }
+    }
 }
 
 private fun todayTaskComparator(): Comparator<TodoItem> {
@@ -267,8 +291,8 @@ private data class SmartInputResult(
     val reminderAt: Long?
 )
 
-private fun parseSmartInput(raw: String): SmartInputResult {
-    val lower = raw.lowercase(Locale.getDefault())
+private fun parseSmartInput(raw: String, description: String): SmartInputResult {
+    val lower = "$raw $description".lowercase(Locale.getDefault())
     val date = when {
         containsAny(lower, listOf("послезавтра", "after tomorrow")) -> daysFromNow(2)
         containsAny(lower, listOf("завтра", "tomorrow")) -> daysFromNow(1)
@@ -291,7 +315,9 @@ private fun parseSmartInput(raw: String): SmartInputResult {
         calendar.set(Calendar.MILLISECOND, 0)
         calendar.timeInMillis
     }
-    val reminderAt = dueAt?.let { it - 60 * 60 * 1000L }
+    val reminderAt = dueAt?.takeIf {
+        containsAny(lower, listOf("напомни", "напомнить", "напоминание", "remind", "notification", "уведом"))
+    }?.let { it - 60 * 60 * 1000L }
     return SmartInputResult(cleanSmartTitle(raw), dueAt, reminderAt)
 }
 
@@ -322,67 +348,86 @@ private fun dayIndex(time: Long): Long {
 }
 
 private object SmartSubtaskGenerator {
-    fun generate(title: String): List<SubTask> {
+    fun generate(title: String, description: String, smartAiEnabled: Boolean): List<SubTask> {
         val text = title.trim()
-        val lower = text.lowercase(Locale.getDefault())
-        val steps = when {
-            containsAny(lower, listOf("куп", "магаз", "продукт", "shopping", "grocer", "buy")) -> listOf(
-                "Составить список нужного",
-                "Проверить бюджет и магазин",
-                "Купить самое важное",
-                "Разложить покупки"
-            )
-            containsAny(lower, listOf("убор", "убрать", "clean", "room", "квартир", "комнат")) -> listOf(
+        val lower = "$title $description".lowercase(Locale.getDefault())
+        val steps = if (smartAiEnabled) smartSteps(text, lower) else fallbackSteps(text)
+        return steps.map { SubTask(title = it) }
+    }
+
+    private fun smartSteps(title: String, lower: String): List<String> {
+        val categories = listOf(
+            AiCategory(listOf("куп", "магаз", "продукт", "shopping", "grocer", "buy"), listOf(
+                "Проверить, что именно нужно купить",
+                "Составить список и отметить самое важное",
+                "Выбрать магазин или способ доставки",
+                "Купить нужное и проверить чек",
+                "Разложить покупки по местам"
+            )),
+            AiCategory(listOf("убор", "убрать", "clean", "room", "квартир", "комнат", "кухн", "ванн"), listOf(
                 "Убрать лишние вещи с поверхностей",
-                "Разобрать мусор и грязную одежду",
+                "Разобрать мусор и вещи не на месте",
                 "Протереть поверхности",
-                "Пропылесосить или помыть пол"
-            )
-            containsAny(lower, listOf("уч", "экзам", "урок", "study", "learn", "exam")) -> listOf(
-                "Определить тему и цель занятия",
-                "Разобрать теорию",
+                "Пропылесосить или помыть пол",
+                "Проверить, что зона выглядит чисто"
+            )),
+            AiCategory(listOf("уч", "экзам", "урок", "study", "learn", "exam", "конспект", "дз", "домаш"), listOf(
+                "Определить тему и что нужно сдать/понять",
+                "Разобрать теорию или материалы",
                 "Сделать практические задания",
+                "Проверить ошибки и непонятные места",
                 "Кратко повторить главное"
-            )
-            containsAny(lower, listOf("трен", "спорт", "зал", "workout", "gym", "run")) -> listOf(
+            )),
+            AiCategory(listOf("трен", "спорт", "зал", "workout", "gym", "run", "пробеж"), listOf(
                 "Подготовить форму и воду",
                 "Сделать разминку",
-                "Выполнить основную тренировку",
-                "Сделать заминку и растяжку"
-            )
-            containsAny(lower, listOf("проект", "project", "релиз", "app", "сайт")) -> listOf(
+                "Выполнить основной блок тренировки",
+                "Сделать заминку и растяжку",
+                "Записать результат"
+            )),
+            AiCategory(listOf("проект", "project", "релиз", "app", "сайт", "код", "дизайн", "презент"), listOf(
                 "Сформулировать конечный результат",
                 "Разбить работу на маленькие части",
+                "Собрать нужные материалы или требования",
                 "Сделать первый рабочий кусок",
-                "Проверить и записать следующий шаг"
-            )
-            containsAny(lower, listOf("напис", "write", "essay", "письм", "текст")) -> listOf(
+                "Проверить результат и записать следующий шаг"
+            )),
+            AiCategory(listOf("напис", "write", "essay", "письм", "текст", "стать", "пост"), listOf(
                 "Собрать основные мысли",
                 "Составить короткий план",
                 "Написать черновик",
-                "Проверить и исправить текст"
-            )
-            containsAny(lower, listOf("позвон", "call", "звон", "встре", "meeting")) -> listOf(
+                "Убрать лишнее и улучшить структуру",
+                "Проверить текст перед отправкой"
+            )),
+            AiCategory(listOf("позвон", "call", "звон", "встре", "meeting", "созвон"), listOf(
                 "Понять цель разговора",
-                "Подготовить вопросы",
+                "Подготовить вопросы и факты",
                 "Связаться с человеком",
-                "Записать договорённости"
-            )
-            containsAny(lower, listOf("оплат", "заплат", "pay", "bill", "счёт", "счет")) -> listOf(
+                "Обсудить главное без отвлечений",
+                "Записать договорённости и следующий шаг"
+            )),
+            AiCategory(listOf("оплат", "заплат", "pay", "bill", "счёт", "счет", "квитанц"), listOf(
                 "Проверить сумму и срок",
+                "Найти правильный счёт или реквизиты",
                 "Открыть нужный сервис оплаты",
                 "Оплатить и сохранить подтверждение",
-                "Отметить задачу выполненной"
-            )
-            containsAny(lower, listOf("готов", "cook", "еда", "ужин", "обед")) -> listOf(
-                "Выбрать блюдо",
+                "Проверить, что платёж прошёл"
+            )),
+            AiCategory(listOf("готов", "cook", "еда", "ужин", "обед", "завтрак", "рецепт"), listOf(
+                "Выбрать блюдо или рецепт",
                 "Проверить продукты",
                 "Подготовить ингредиенты",
-                "Приготовить и убрать кухню"
-            )
-            else -> fallbackSteps(text)
-        }
-        return steps.map { SubTask(title = it) }
+                "Приготовить по шагам",
+                "Убрать кухню после готовки"
+            ))
+        )
+        return categories
+            .map { it to it.keywords.count { keyword -> lower.contains(keyword) } }
+            .maxByOrNull { it.second }
+            ?.takeIf { it.second > 0 }
+            ?.first
+            ?.steps
+            ?: fallbackSteps(title)
     }
 
     private fun fallbackSteps(title: String): List<String> {
@@ -395,4 +440,6 @@ private object SmartSubtaskGenerator {
             "Проверить результат и завершить"
         )
     }
+
+    private data class AiCategory(val keywords: List<String>, val steps: List<String>)
 }

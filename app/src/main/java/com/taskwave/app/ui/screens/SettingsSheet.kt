@@ -27,6 +27,8 @@ import com.taskwave.app.R
 fun SettingsSheet(
     darkModeOverride: String,
     onDarkModeChange: (String) -> Unit,
+    smartAiEnabled: Boolean,
+    onSmartAiChange: (Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -113,6 +115,35 @@ fun SettingsSheet(
                         }
                     }
                 }
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            Text(
+                stringResource(R.string.smart_ai),
+                style = MaterialTheme.typography.labelLarge,
+                color = scheme.primary,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.height(12.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(scheme.surfaceVariant)
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.smart_ai_title), color = scheme.onSurface, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(4.dp))
+                    Text(stringResource(R.string.smart_ai_subtitle), color = scheme.onSurfaceVariant, fontSize = 12.sp, lineHeight = 17.sp)
+                }
+                Switch(
+                    checked = smartAiEnabled,
+                    onCheckedChange = onSmartAiChange
+                )
             }
 
             Spacer(Modifier.height(24.dp))
