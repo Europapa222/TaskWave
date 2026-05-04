@@ -11,7 +11,6 @@
     <string name="onboarding_2_desc">Отмечай задачи как высокий, средний или низкий приоритет — всегда знай, что важнее.</string>
     <string name="onboarding_3_title">Следи за прогрессом</string>
     <string name="onboarding_3_desc">Смотри сколько задач выполнено и двигайся к цели шаг за шагом.</string>
-    <string name="onboarding_text_only">Онбординг только с текстом</string>
 
     <!-- Main screen -->
     <string name="my_tasks">Мои задачи</string>
@@ -58,6 +57,8 @@
     <string name="deadline_today">Сегодня</string>
     <string name="deadline_tomorrow">Завтра</string>
     <string name="deadline_week">На этой неделе</string>
+    <string name="deadline_calendar">Выбрать дату</string>
+    <string name="deadline_calendar_selected">Дата: %1$s</string>
     <string name="no_deadline">Без срока</string>
     <string name="reminder">Напоминание</string>
     <string name="reminder_optional">Необязательно: уведомить перед сроком</string>

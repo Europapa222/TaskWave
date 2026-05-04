@@ -72,20 +72,6 @@ fun OnboardingScreen(onFinish: () -> Unit) {
                 label = "text"
             ) { idx ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(28.dp))
-                            .background(scheme.primary.copy(alpha = 0.10f))
-                            .padding(horizontal = 18.dp, vertical = 8.dp)
-                    ) {
-                        Text(
-                            stringResource(R.string.onboarding_text_only),
-                            color = scheme.primary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
-                        )
-                    }
-                    Spacer(Modifier.height(28.dp))
                     Text(
                         text = stringResource(pages[idx].titleRes),
                         style = MaterialTheme.typography.headlineMedium,
