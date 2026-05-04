@@ -86,6 +86,9 @@
     <string name="dark_mode_sub">Следовать теме системы</string>
     <string name="language">Язык</string>
     <string name="language_system">Как в системе</string>
+    <string name="widgets">Виджеты</string>
+    <string name="widgets_help_title">Как добавить виджет TaskWave</string>
+    <string name="widgets_help_body">1. Зажми пустое место на главном экране.\n2. Нажми «Виджеты».\n3. Найди TaskWave.\n4. Выбери «Сегодня», «Фокус-задача» или «Прогресс» и перетащи на экран.</string>
 
     <!-- Delete -->
     <string name="delete">Удалить</string>
@@ -100,6 +103,11 @@
 
     <!-- Widget -->
     <string name="widget_title">TaskWave Сегодня</string>
+    <string name="widget_focus_title">Фокус-задача</string>
+    <string name="widget_progress_title">Прогресс</string>
     <string name="widget_empty">Нет активных задач</string>
     <string name="widget_more">Ещё +%1$d</string>
+    <string name="widget_progress_active">Активно\n%1$d</string>
+    <string name="widget_progress_done">Готово\n%1$d</string>
+    <string name="widget_progress_overdue">Просрочено: %1$d</string>
 </resources>
