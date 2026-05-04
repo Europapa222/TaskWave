@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.taskwave.app.data.Priority
+import com.taskwave.app.data.ProductivityStats
+import com.taskwave.app.data.SubTask
 import com.taskwave.app.data.TaskFolder
 import com.taskwave.app.data.TaskRepository
 import com.taskwave.app.data.TodoItem
@@ -17,6 +19,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import java.util.Locale
 
 enum class FilterType { TODAY, ALL, ACTIVE, DONE }
 
@@ -27,6 +30,7 @@ data class AppUiState(
     val selectedFolderId: String? = null,
     val filter: FilterType = FilterType.ALL,
     val searchQuery: String = "",
+    val productivity: ProductivityStats = ProductivityStats(),
     val showAddDialog: Boolean = false,
     val showFolderDialog: Boolean = false,
     val showSettings: Boolean = false,
@@ -38,7 +42,9 @@ data class AppUiState(
         get() {
             val byFolder = selectedFolderId?.let { folderId -> items.filter { it.folderId == folderId } } ?: items
             val byFilter = when (filter) {
-                FilterType.TODAY -> byFolder.filter { !it.isDone }.sortedWith(todayTaskComparator())
+                FilterType.TODAY -> byFolder.filter { !it.isDone }.sortedWith(todayTaskComparator()).let {
+                    if (showAntiOverload) it.take(3) else it
+                }
                 FilterType.ALL -> byFolder
                 FilterType.ACTIVE -> byFolder.filter { !it.isDone }
                 FilterType.DONE -> byFolder.filter { it.isDone }
@@ -62,6 +68,9 @@ data class AppUiState(
             .sortedWith(compareBy<TodoItem> { it.dueAt ?: Long.MAX_VALUE }.thenBy { it.priority.ordinal }.thenBy { it.createdAt })
             .firstOrNull()
     val progress get() = if (totalCount > 0) doneCount.toFloat() / totalCount else 0f
+    val productivityLevel get() = productivity.points / 100 + 1
+    val topThreeToday get() = items.filter { !it.isDone }.sortedWith(todayTaskComparator()).take(3)
+    val showAntiOverload get() = filter == FilterType.TODAY && items.count { !it.isDone } > 3
 }
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -73,8 +82,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         viewModelScope.launch {
-            combine(prefs.onboardingDone, prefs.darkModeOverride, repo.tasks, repo.folders) { done, dark, tasks, folders ->
-                AppUiState(onboardingDone = done, darkModeOverride = dark, items = tasks, folders = folders, isLoading = false)
+            combine(prefs.onboardingDone, prefs.darkModeOverride, repo.tasks, repo.folders, repo.productivity) { done, dark, tasks, folders, productivity ->
+                AppUiState(onboardingDone = done, darkModeOverride = dark, items = tasks, folders = folders, productivity = productivity, isLoading = false)
             }.collect { newState ->
                 _state.update {
                     newState.copy(
@@ -108,13 +117,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun addItem(title: String, description: String, priority: Priority, folderId: String?, dueAt: Long?, reminderAt: Long?) {
         if (title.isBlank()) return
+        val parsed = parseSmartInput(title)
+        val finalDueAt = dueAt ?: parsed.dueAt
+        val finalReminderAt = reminderAt ?: parsed.reminderAt
         val task = TodoItem(
-            title = title.trim(),
+            title = parsed.title,
             description = description.trim(),
             priority = priority,
             folderId = folderId,
-            dueAt = dueAt,
-            reminderAt = reminderAt
+            dueAt = finalDueAt,
+            reminderAt = finalReminderAt
         )
         val newItems = listOf(task) + _state.value.items
         _state.update { it.copy(items = newItems, showAddDialog = false) }
@@ -124,10 +136,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toggleDone(id: String) {
         val completedAt = System.currentTimeMillis()
+        var completedNow = false
         val newItems = _state.value.items.map {
             if (it.id == id && !it.isDone) {
                 ReminderScheduler.cancelReminder(getApplication(), it.id)
                 ReminderScheduler.scheduleCleanup(getApplication(), it.id, it.title, completedAt)
+                completedNow = true
                 it.copy(isDone = true, completedAt = completedAt)
             } else if (it.id == id) {
                 ReminderScheduler.cancelCleanup(getApplication(), it.id)
@@ -139,12 +153,51 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         _state.update { it.copy(items = newItems) }
         persistTasks(newItems)
+        if (completedNow) viewModelScope.launch { repo.recordCompletion(dayIndex(completedAt)) }
     }
 
     fun deleteItem(id: String) {
         ReminderScheduler.cancelReminder(getApplication(), id)
         ReminderScheduler.cancelCleanup(getApplication(), id)
         val newItems = _state.value.items.filter { it.id != id }
+        _state.update { it.copy(items = newItems) }
+        persistTasks(newItems)
+    }
+
+    fun addTemplate(title: String, subtasks: List<String>) {
+        val task = TodoItem(
+            title = title,
+            priority = Priority.MEDIUM,
+            folderId = _state.value.selectedFolderId,
+            subtasks = subtasks.map { SubTask(title = it) }
+        )
+        val newItems = listOf(task) + _state.value.items
+        _state.update { it.copy(items = newItems) }
+        persistTasks(newItems)
+    }
+
+    fun splitTask(id: String) {
+        val newItems = _state.value.items.map { task ->
+            if (task.id == id && task.subtasks.isEmpty()) {
+                task.copy(subtasks = defaultSubtasks(task.title))
+            } else {
+                task
+            }
+        }
+        _state.update { it.copy(items = newItems) }
+        persistTasks(newItems)
+    }
+
+    fun toggleSubtask(taskId: String, subtaskId: String) {
+        val newItems = _state.value.items.map { task ->
+            if (task.id == taskId) {
+                task.copy(subtasks = task.subtasks.map { subtask ->
+                    if (subtask.id == subtaskId) subtask.copy(isDone = !subtask.isDone) else subtask
+                })
+            } else {
+                task
+            }
+        }
         _state.update { it.copy(items = newItems) }
         persistTasks(newItems)
     }
@@ -218,4 +271,73 @@ private fun endOfTodayMillis(now: Long): Long {
     calendar.set(Calendar.SECOND, 59)
     calendar.set(Calendar.MILLISECOND, 999)
     return calendar.timeInMillis
+}
+
+private data class SmartInputResult(
+    val title: String,
+    val dueAt: Long?,
+    val reminderAt: Long?
+)
+
+private fun parseSmartInput(raw: String): SmartInputResult {
+    val lower = raw.lowercase(Locale.getDefault())
+    val date = when {
+        containsAny(lower, listOf("послезавтра", "after tomorrow")) -> daysFromNow(2)
+        containsAny(lower, listOf("завтра", "tomorrow")) -> daysFromNow(1)
+        containsAny(lower, listOf("сегодня", "today")) -> daysFromNow(0)
+        containsAny(lower, listOf("на неделе", "this week")) -> daysFromNow(7)
+        else -> null
+    }
+    val time = Regex("""(\d{1,2})[:.](\d{2})""").find(lower)?.let {
+        it.groupValues[1].toIntOrNull() to it.groupValues[2].toIntOrNull()
+    }
+    val dueAt = date?.let { calendar ->
+        if (time?.first != null && time.second != null) {
+            calendar.set(Calendar.HOUR_OF_DAY, time.first ?: 9)
+            calendar.set(Calendar.MINUTE, time.second ?: 0)
+        } else {
+            calendar.set(Calendar.HOUR_OF_DAY, 18)
+            calendar.set(Calendar.MINUTE, 0)
+        }
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        calendar.timeInMillis
+    }
+    val reminderAt = dueAt?.let { it - 60 * 60 * 1000L }
+    return SmartInputResult(cleanSmartTitle(raw), dueAt, reminderAt)
+}
+
+private fun cleanSmartTitle(raw: String): String {
+    return raw
+        .replace(Regex("""(?i)\b(today|tomorrow|after tomorrow|this week|remind me|remind)\b"""), "")
+        .replace(Regex("""(?i)\b(сегодня|завтра|послезавтра|на неделе|напомни|напоминание)\b"""), "")
+        .replace(Regex("""(?i)\b(at|в)\s+\d{1,2}[:.]\d{2}\b"""), "")
+        .replace(Regex("""\b\d{1,2}[:.]\d{2}\b"""), "")
+        .replace(Regex("""(?i)\b(at|в)\s*$"""), "")
+        .replace(Regex("""\s+"""), " ")
+        .trim()
+        .ifBlank { raw.trim() }
+}
+
+private fun daysFromNow(days: Int): Calendar {
+    val calendar = Calendar.getInstance()
+    calendar.add(Calendar.DAY_OF_YEAR, days)
+    return calendar
+}
+
+private fun containsAny(value: String, options: List<String>): Boolean = options.any { value.contains(it) }
+
+private fun dayIndex(time: Long): Long {
+    val calendar = Calendar.getInstance()
+    calendar.timeInMillis = time
+    return calendar.get(Calendar.YEAR) * 400L + calendar.get(Calendar.DAY_OF_YEAR)
+}
+
+private fun defaultSubtasks(title: String): List<SubTask> {
+    val cleaned = title.trim().ifBlank { "task" }
+    return listOf(
+        SubTask(title = "Подготовить: $cleaned"),
+        SubTask(title = "Сделать основной шаг"),
+        SubTask(title = "Проверить результат")
+    )
 }
