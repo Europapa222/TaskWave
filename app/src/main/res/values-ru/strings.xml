@@ -11,6 +11,7 @@
     <string name="onboarding_2_desc">Отмечай задачи как высокий, средний или низкий приоритет — всегда знай, что важнее.</string>
     <string name="onboarding_3_title">Следи за прогрессом</string>
     <string name="onboarding_3_desc">Смотри сколько задач выполнено и двигайся к цели шаг за шагом.</string>
+    <string name="onboarding_text_only">Онбординг только с текстом</string>
 
     <!-- Main screen -->
     <string name="my_tasks">Мои задачи</string>
@@ -30,6 +31,7 @@
     <string name="stat_total">Всего</string>
     <string name="stat_active">Активных</string>
     <string name="stat_done">Готово</string>
+    <string name="stat_overdue">Просрочено</string>
 
     <!-- Empty states -->
     <string name="empty_all">Задач пока нет</string>
@@ -47,6 +49,27 @@
     <string name="priority_high">Высокий</string>
     <string name="priority_medium">Средний</string>
     <string name="priority_low">Низкий</string>
+    <string name="folder">Папка</string>
+    <string name="folder_all">Все папки</string>
+    <string name="folder_add">Новая папка</string>
+    <string name="folder_new">Создать папку</string>
+    <string name="folder_name">Название папки</string>
+    <string name="deadline">Срок выполнения</string>
+    <string name="deadline_today">Сегодня</string>
+    <string name="deadline_tomorrow">Завтра</string>
+    <string name="deadline_week">На этой неделе</string>
+    <string name="no_deadline">Без срока</string>
+    <string name="reminder">Напоминание</string>
+    <string name="reminder_optional">Необязательно: уведомить перед сроком</string>
+    <string name="remind_when">Уведомить</string>
+    <string name="remind_one_hour">За 1 час</string>
+    <string name="remind_one_day">За 1 день</string>
+    <string name="remind_at_deadline">В момент срока</string>
+    <string name="due">Срок %1$s</string>
+    <string name="overdue">Просрочено %1$s</string>
+    <string name="reminder_short">Напомнить %1$s</string>
+    <string name="auto_delete_notice">Выполненная задача удалится через 24 часа с уведомлением.</string>
+    <string name="focus_title">Лучший следующий шаг</string>
     <string name="add">Добавить</string>
     <string name="cancel">Отмена</string>
 
@@ -60,4 +83,12 @@
 
     <!-- Delete -->
     <string name="delete">Удалить</string>
+
+    <!-- Notifications -->
+    <string name="reminder_channel_name">Напоминания о задачах</string>
+    <string name="cleanup_channel_name">Удаление выполненных задач</string>
+    <string name="reminder_notification_text">Пора вернуться к задаче.</string>
+    <string name="reminder_notification_text_with_due">Срок: %1$s. Пора завершить задачу.</string>
+    <string name="cleanup_notification_title">Задача удалена</string>
+    <string name="cleanup_notification_text">«%1$s» была выполнена и удалена через 24 часа.</string>
 </resources>
