@@ -1,0 +1,63 @@
+<resources>
+    <string name="app_name">TaskWave</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_skip">Пропустить</string>
+    <string name="onboarding_next">Далее</string>
+    <string name="onboarding_start">Начать</string>
+    <string name="onboarding_1_title">Контролируй свои задачи</string>
+    <string name="onboarding_1_desc">Записывай всё, что нужно сделать. TaskWave держит твои задачи в порядке.</string>
+    <string name="onboarding_2_title">Расставляй приоритеты</string>
+    <string name="onboarding_2_desc">Отмечай задачи как высокий, средний или низкий приоритет — всегда знай, что важнее.</string>
+    <string name="onboarding_3_title">Следи за прогрессом</string>
+    <string name="onboarding_3_desc">Смотри сколько задач выполнено и двигайся к цели шаг за шагом.</string>
+
+    <!-- Main screen -->
+    <string name="my_tasks">Мои задачи</string>
+    <string name="progress">Прогресс</string>
+    <string name="all_done">Все задачи выполнены!</string>
+    <string name="start_working">Начни выполнять задачи</string>
+    <string name="add_first">Добавь первую задачу</string>
+    <string name="completed_of">%1$d из %2$d выполнено</string>
+    <string name="percent_done">%1$d%% выполнено</string>
+
+    <!-- Filters -->
+    <string name="filter_all">Все</string>
+    <string name="filter_active">Активные</string>
+    <string name="filter_done">Готово</string>
+
+    <!-- Stats -->
+    <string name="stat_total">Всего</string>
+    <string name="stat_active">Активных</string>
+    <string name="stat_done">Готово</string>
+
+    <!-- Empty states -->
+    <string name="empty_all">Задач пока нет</string>
+    <string name="empty_all_sub">Нажми + чтобы добавить первую</string>
+    <string name="empty_active">Все задачи выполнены</string>
+    <string name="empty_active_sub">Отдыхай, ты справился!</string>
+    <string name="empty_done">Нет выполненных задач</string>
+    <string name="empty_done_sub">Выполни задачу — она появится здесь</string>
+
+    <!-- Add task dialog -->
+    <string name="new_task">Новая задача</string>
+    <string name="task_title">Название *</string>
+    <string name="task_description">Описание (необязательно)</string>
+    <string name="priority">Приоритет</string>
+    <string name="priority_high">Высокий</string>
+    <string name="priority_medium">Средний</string>
+    <string name="priority_low">Низкий</string>
+    <string name="add">Добавить</string>
+    <string name="cancel">Отмена</string>
+
+    <!-- Settings -->
+    <string name="settings">Настройки</string>
+    <string name="appearance">Внешний вид</string>
+    <string name="dark_mode">Тёмная тема</string>
+    <string name="dark_mode_sub">Следовать теме системы</string>
+    <string name="language">Язык</string>
+    <string name="language_system">Как в системе</string>
+
+    <!-- Delete -->
+    <string name="delete">Удалить</string>
+</resources>

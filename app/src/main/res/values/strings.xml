@@ -1,0 +1,63 @@
+<resources>
+    <string name="app_name">TaskWave</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_start">Get Started</string>
+    <string name="onboarding_1_title">Stay on top of your tasks</string>
+    <string name="onboarding_1_desc">Capture everything you need to do. TaskWave keeps your tasks organized and accessible.</string>
+    <string name="onboarding_2_title">Set priorities</string>
+    <string name="onboarding_2_desc">Mark tasks as high, medium or low priority so you always know what matters most.</string>
+    <string name="onboarding_3_title">Track your progress</string>
+    <string name="onboarding_3_desc">See how many tasks you have completed and stay motivated to finish what you started.</string>
+
+    <!-- Main screen -->
+    <string name="my_tasks">My Tasks</string>
+    <string name="progress">Progress</string>
+    <string name="all_done">All tasks completed!</string>
+    <string name="start_working">Start completing tasks</string>
+    <string name="add_first">Add your first task</string>
+    <string name="completed_of">%1$d of %2$d completed</string>
+    <string name="percent_done">%1$d%% done</string>
+
+    <!-- Filters -->
+    <string name="filter_all">All</string>
+    <string name="filter_active">Active</string>
+    <string name="filter_done">Done</string>
+
+    <!-- Stats -->
+    <string name="stat_total">Total</string>
+    <string name="stat_active">Active</string>
+    <string name="stat_done">Done</string>
+
+    <!-- Empty states -->
+    <string name="empty_all">No tasks yet</string>
+    <string name="empty_all_sub">Tap + to add your first task</string>
+    <string name="empty_active">All tasks completed</string>
+    <string name="empty_active_sub">Great job! Take a rest</string>
+    <string name="empty_done">No completed tasks</string>
+    <string name="empty_done_sub">Complete a task and it will appear here</string>
+
+    <!-- Add task dialog -->
+    <string name="new_task">New Task</string>
+    <string name="task_title">Title *</string>
+    <string name="task_description">Description (optional)</string>
+    <string name="priority">Priority</string>
+    <string name="priority_high">High</string>
+    <string name="priority_medium">Medium</string>
+    <string name="priority_low">Low</string>
+    <string name="add">Add</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- Settings -->
+    <string name="settings">Settings</string>
+    <string name="appearance">Appearance</string>
+    <string name="dark_mode">Dark mode</string>
+    <string name="dark_mode_sub">Follow system theme</string>
+    <string name="language">Language</string>
+    <string name="language_system">System default</string>
+
+    <!-- Delete -->
+    <string name="delete">Delete</string>
+</resources>
