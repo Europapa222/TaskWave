@@ -106,8 +106,7 @@ fun TodoScreen(vm: MainViewModel) {
             onDismiss = { vm.hideAddDialog() },
             onAdd = { title, description, priority, folderId, dueAt, reminderAt ->
                 vm.addItem(title, description, priority, folderId, dueAt, reminderAt)
-            },
-            onTemplate = { title, subtasks -> vm.addTemplate(title, subtasks) }
+            }
         )
     }
     if (state.showFolderDialog) {
@@ -740,8 +739,7 @@ private fun priorityLabel(priority: Priority): String {
 fun AddTaskDialog(
     state: AppUiState,
     onDismiss: () -> Unit,
-    onAdd: (String, String, Priority, String?, Long?, Long?) -> Unit,
-    onTemplate: (String, List<String>) -> Unit
+    onAdd: (String, String, Priority, String?, Long?, Long?) -> Unit
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -799,19 +797,6 @@ fun AddTaskDialog(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp)
                 )
-                ChoiceSection(stringResource(R.string.templates)) {
-                    taskTemplates().forEach { template ->
-                        FilterChip(
-                            selected = false,
-                            onClick = {
-                                onTemplate(template.title, template.subtasks)
-                                onDismiss()
-                            },
-                            label = { Text(template.label, fontSize = 12.sp) },
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                    }
-                }
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
@@ -984,38 +969,6 @@ private fun AddFolderDialog(onDismiss: () -> Unit, onAdd: (String) -> Unit) {
 }
 
 private data class DateOption(val label: String, val time: Long)
-private data class TaskTemplate(val label: String, val title: String, val subtasks: List<String>)
-
-@Composable
-private fun taskTemplates(): List<TaskTemplate> {
-    return listOf(
-        TaskTemplate(stringResource(R.string.template_study), stringResource(R.string.template_study_title), listOf(
-            stringResource(R.string.template_study_step_1),
-            stringResource(R.string.template_study_step_2),
-            stringResource(R.string.template_study_step_3)
-        )),
-        TaskTemplate(stringResource(R.string.template_shopping), stringResource(R.string.template_shopping_title), listOf(
-            stringResource(R.string.template_shopping_step_1),
-            stringResource(R.string.template_shopping_step_2),
-            stringResource(R.string.template_shopping_step_3)
-        )),
-        TaskTemplate(stringResource(R.string.template_workout), stringResource(R.string.template_workout_title), listOf(
-            stringResource(R.string.template_workout_step_1),
-            stringResource(R.string.template_workout_step_2),
-            stringResource(R.string.template_workout_step_3)
-        )),
-        TaskTemplate(stringResource(R.string.template_cleaning), stringResource(R.string.template_cleaning_title), listOf(
-            stringResource(R.string.template_cleaning_step_1),
-            stringResource(R.string.template_cleaning_step_2),
-            stringResource(R.string.template_cleaning_step_3)
-        )),
-        TaskTemplate(stringResource(R.string.template_project), stringResource(R.string.template_project_title), listOf(
-            stringResource(R.string.template_project_step_1),
-            stringResource(R.string.template_project_step_2),
-            stringResource(R.string.template_project_step_3)
-        ))
-    )
-}
 
 @Composable
 private fun dateOptions(): List<DateOption> {
