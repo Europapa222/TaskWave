@@ -106,7 +106,8 @@ fun TodoScreen(vm: MainViewModel) {
             onDismiss = { vm.hideAddDialog() },
             onAdd = { title, description, priority, folderId, dueAt, reminderAt ->
                 vm.addItem(title, description, priority, folderId, dueAt, reminderAt)
-            }
+            },
+            onTemplate = { title, subtasks -> vm.addTemplate(title, subtasks) }
         )
     }
     if (state.showFolderDialog) {
@@ -162,6 +163,10 @@ fun TodoScreen(vm: MainViewModel) {
                         overdue = state.overdueCount
                     )
                 }
+                item { ProductivityCard(state) }
+                if (state.showAntiOverload) {
+                    item { AntiOverloadCard(state.topThreeToday) }
+                }
                 state.focusTask?.let { task ->
                     item { FocusCard(task = task, folder = state.folders.firstOrNull { it.id == task.folderId }) }
                 }
@@ -174,8 +179,66 @@ fun TodoScreen(vm: MainViewModel) {
                     item = item,
                     folder = state.folders.firstOrNull { it.id == item.folderId },
                     onToggle = { vm.toggleDone(item.id) },
-                    onDelete = { vm.deleteItem(item.id) }
+                    onDelete = { vm.deleteItem(item.id) },
+                    onSplit = { vm.splitTask(item.id) },
+                    onSubtaskToggle = { subtaskId -> vm.toggleSubtask(item.id, subtaskId) }
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProductivityCard(state: AppUiState) {
+    val scheme = MaterialTheme.colorScheme
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0)),
+        elevation = CardDefaults.cardElevation(0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Icon(Icons.Outlined.Star, null, tint = Color(0xFFFF9800), modifier = Modifier.size(30.dp))
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.motivation_title), fontWeight = FontWeight.Bold, color = scheme.onSurface)
+                Text(
+                    stringResource(
+                        R.string.motivation_stats,
+                        state.productivity.streak,
+                        state.productivity.points,
+                        state.productivityLevel,
+                        state.productivity.completedToday
+                    ),
+                    fontSize = 12.sp,
+                    color = scheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AntiOverloadCard(tasks: List<TodoItem>) {
+    val scheme = MaterialTheme.colorScheme
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = scheme.primary.copy(0.10f)),
+        elevation = CardDefaults.cardElevation(0.dp)
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(stringResource(R.string.anti_overload_title), color = scheme.primary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            Text(stringResource(R.string.anti_overload_subtitle), color = scheme.onSurfaceVariant, fontSize = 12.sp)
+            tasks.forEachIndexed { index, task ->
+                Text("${index + 1}. ${task.title}", color = scheme.onSurface, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
@@ -519,7 +582,14 @@ private fun EmptyState(filter: FilterType, searchQuery: String) {
 }
 
 @Composable
-fun TaskCard(item: TodoItem, folder: TaskFolder?, onToggle: () -> Unit, onDelete: () -> Unit) {
+fun TaskCard(
+    item: TodoItem,
+    folder: TaskFolder?,
+    onToggle: () -> Unit,
+    onDelete: () -> Unit,
+    onSplit: () -> Unit,
+    onSubtaskToggle: (String) -> Unit
+) {
     val scheme = MaterialTheme.colorScheme
     val priorityColor = when (item.priority) {
         Priority.HIGH -> Color(0xFFEF5350)
@@ -574,6 +644,25 @@ fun TaskCard(item: TodoItem, folder: TaskFolder?, onToggle: () -> Unit, onDelete
                         overflow = TextOverflow.Ellipsis
                     )
                 }
+                if (item.subtasks.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    item.subtasks.forEach { subtask ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(
+                                checked = subtask.isDone,
+                                enabled = !item.isDone,
+                                onCheckedChange = { onSubtaskToggle(subtask.id) },
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Text(
+                                subtask.title,
+                                color = scheme.onSurfaceVariant,
+                                fontSize = 12.sp,
+                                textDecoration = if (subtask.isDone) TextDecoration.LineThrough else TextDecoration.None
+                            )
+                        }
+                    }
+                }
                 Spacer(Modifier.height(7.dp))
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -598,6 +687,16 @@ fun TaskCard(item: TodoItem, folder: TaskFolder?, onToggle: () -> Unit, onDelete
                         stringResource(R.string.auto_delete_notice),
                         color = scheme.onSurfaceVariant,
                         fontSize = 11.sp
+                    )
+                }
+                if (!item.isDone && item.subtasks.isEmpty()) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        stringResource(R.string.split_task),
+                        modifier = Modifier.clickable { onSplit() },
+                        color = scheme.primary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -641,7 +740,8 @@ private fun priorityLabel(priority: Priority): String {
 fun AddTaskDialog(
     state: AppUiState,
     onDismiss: () -> Unit,
-    onAdd: (String, String, Priority, String?, Long?, Long?) -> Unit
+    onAdd: (String, String, Priority, String?, Long?, Long?) -> Unit,
+    onTemplate: (String, List<String>) -> Unit
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -694,10 +794,24 @@ fun AddTaskDialog(
                     value = title,
                     onValueChange = { title = it },
                     label = { Text(stringResource(R.string.task_title)) },
+                    supportingText = { Text(stringResource(R.string.smart_input_hint)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp)
                 )
+                ChoiceSection(stringResource(R.string.templates)) {
+                    taskTemplates().forEach { template ->
+                        FilterChip(
+                            selected = false,
+                            onClick = {
+                                onTemplate(template.title, template.subtasks)
+                                onDismiss()
+                            },
+                            label = { Text(template.label, fontSize = 12.sp) },
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                    }
+                }
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
@@ -870,6 +984,38 @@ private fun AddFolderDialog(onDismiss: () -> Unit, onAdd: (String) -> Unit) {
 }
 
 private data class DateOption(val label: String, val time: Long)
+private data class TaskTemplate(val label: String, val title: String, val subtasks: List<String>)
+
+@Composable
+private fun taskTemplates(): List<TaskTemplate> {
+    return listOf(
+        TaskTemplate(stringResource(R.string.template_study), stringResource(R.string.template_study_title), listOf(
+            stringResource(R.string.template_study_step_1),
+            stringResource(R.string.template_study_step_2),
+            stringResource(R.string.template_study_step_3)
+        )),
+        TaskTemplate(stringResource(R.string.template_shopping), stringResource(R.string.template_shopping_title), listOf(
+            stringResource(R.string.template_shopping_step_1),
+            stringResource(R.string.template_shopping_step_2),
+            stringResource(R.string.template_shopping_step_3)
+        )),
+        TaskTemplate(stringResource(R.string.template_workout), stringResource(R.string.template_workout_title), listOf(
+            stringResource(R.string.template_workout_step_1),
+            stringResource(R.string.template_workout_step_2),
+            stringResource(R.string.template_workout_step_3)
+        )),
+        TaskTemplate(stringResource(R.string.template_cleaning), stringResource(R.string.template_cleaning_title), listOf(
+            stringResource(R.string.template_cleaning_step_1),
+            stringResource(R.string.template_cleaning_step_2),
+            stringResource(R.string.template_cleaning_step_3)
+        )),
+        TaskTemplate(stringResource(R.string.template_project), stringResource(R.string.template_project_title), listOf(
+            stringResource(R.string.template_project_step_1),
+            stringResource(R.string.template_project_step_2),
+            stringResource(R.string.template_project_step_3)
+        ))
+    )
+}
 
 @Composable
 private fun dateOptions(): List<DateOption> {

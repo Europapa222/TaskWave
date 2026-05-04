@@ -11,6 +11,12 @@ data class TaskFolder(
     val createdAt: Long = System.currentTimeMillis()
 )
 
+data class SubTask(
+    val id: String = UUID.randomUUID().toString(),
+    val title: String,
+    val isDone: Boolean = false
+)
+
 data class TodoItem(
     val id: String = UUID.randomUUID().toString(),
     val title: String,
@@ -21,5 +27,6 @@ data class TodoItem(
     val folderId: String? = null,
     val dueAt: Long? = null,
     val reminderAt: Long? = null,
-    val completedAt: Long? = null
+    val completedAt: Long? = null,
+    val subtasks: List<SubTask> = emptyList()
 )
