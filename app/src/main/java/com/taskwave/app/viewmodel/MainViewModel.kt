@@ -164,22 +164,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         persistTasks(newItems)
     }
 
-    fun addTemplate(title: String, subtasks: List<String>) {
-        val task = TodoItem(
-            title = title,
-            priority = Priority.MEDIUM,
-            folderId = _state.value.selectedFolderId,
-            subtasks = subtasks.map { SubTask(title = it) }
-        )
-        val newItems = listOf(task) + _state.value.items
-        _state.update { it.copy(items = newItems) }
-        persistTasks(newItems)
-    }
-
     fun splitTask(id: String) {
         val newItems = _state.value.items.map { task ->
             if (task.id == id && task.subtasks.isEmpty()) {
-                task.copy(subtasks = defaultSubtasks(task.title))
+                task.copy(subtasks = SmartSubtaskGenerator.generate(task.title))
             } else {
                 task
             }
@@ -333,11 +321,78 @@ private fun dayIndex(time: Long): Long {
     return calendar.get(Calendar.YEAR) * 400L + calendar.get(Calendar.DAY_OF_YEAR)
 }
 
-private fun defaultSubtasks(title: String): List<SubTask> {
-    val cleaned = title.trim().ifBlank { "task" }
-    return listOf(
-        SubTask(title = "Подготовить: $cleaned"),
-        SubTask(title = "Сделать основной шаг"),
-        SubTask(title = "Проверить результат")
-    )
+private object SmartSubtaskGenerator {
+    fun generate(title: String): List<SubTask> {
+        val text = title.trim()
+        val lower = text.lowercase(Locale.getDefault())
+        val steps = when {
+            containsAny(lower, listOf("куп", "магаз", "продукт", "shopping", "grocer", "buy")) -> listOf(
+                "Составить список нужного",
+                "Проверить бюджет и магазин",
+                "Купить самое важное",
+                "Разложить покупки"
+            )
+            containsAny(lower, listOf("убор", "убрать", "clean", "room", "квартир", "комнат")) -> listOf(
+                "Убрать лишние вещи с поверхностей",
+                "Разобрать мусор и грязную одежду",
+                "Протереть поверхности",
+                "Пропылесосить или помыть пол"
+            )
+            containsAny(lower, listOf("уч", "экзам", "урок", "study", "learn", "exam")) -> listOf(
+                "Определить тему и цель занятия",
+                "Разобрать теорию",
+                "Сделать практические задания",
+                "Кратко повторить главное"
+            )
+            containsAny(lower, listOf("трен", "спорт", "зал", "workout", "gym", "run")) -> listOf(
+                "Подготовить форму и воду",
+                "Сделать разминку",
+                "Выполнить основную тренировку",
+                "Сделать заминку и растяжку"
+            )
+            containsAny(lower, listOf("проект", "project", "релиз", "app", "сайт")) -> listOf(
+                "Сформулировать конечный результат",
+                "Разбить работу на маленькие части",
+                "Сделать первый рабочий кусок",
+                "Проверить и записать следующий шаг"
+            )
+            containsAny(lower, listOf("напис", "write", "essay", "письм", "текст")) -> listOf(
+                "Собрать основные мысли",
+                "Составить короткий план",
+                "Написать черновик",
+                "Проверить и исправить текст"
+            )
+            containsAny(lower, listOf("позвон", "call", "звон", "встре", "meeting")) -> listOf(
+                "Понять цель разговора",
+                "Подготовить вопросы",
+                "Связаться с человеком",
+                "Записать договорённости"
+            )
+            containsAny(lower, listOf("оплат", "заплат", "pay", "bill", "счёт", "счет")) -> listOf(
+                "Проверить сумму и срок",
+                "Открыть нужный сервис оплаты",
+                "Оплатить и сохранить подтверждение",
+                "Отметить задачу выполненной"
+            )
+            containsAny(lower, listOf("готов", "cook", "еда", "ужин", "обед")) -> listOf(
+                "Выбрать блюдо",
+                "Проверить продукты",
+                "Подготовить ингредиенты",
+                "Приготовить и убрать кухню"
+            )
+            else -> fallbackSteps(text)
+        }
+        return steps.map { SubTask(title = it) }
+    }
+
+    private fun fallbackSteps(title: String): List<String> {
+        val action = title.split(" ").firstOrNull().orEmpty().replaceFirstChar { it.lowercase(Locale.getDefault()) }
+        val objectName = title.removePrefix(title.split(" ").firstOrNull().orEmpty()).trim().ifBlank { title }
+        return listOf(
+            "Понять, какой результат нужен",
+            "Подготовить всё для задачи: $objectName",
+            if (action.isNotBlank()) "Начать: $action" else "Сделать первый маленький шаг",
+            "Проверить результат и завершить"
+        )
+    }
 }
