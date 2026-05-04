@@ -22,6 +22,7 @@
     <string name="percent_done">%1$d%% done</string>
 
     <!-- Filters -->
+    <string name="filter_today">Today</string>
     <string name="filter_all">All</string>
     <string name="filter_active">Active</string>
     <string name="filter_done">Done</string>
@@ -39,6 +40,10 @@
     <string name="empty_active_sub">Great job! Take a rest</string>
     <string name="empty_done">No completed tasks</string>
     <string name="empty_done_sub">Complete a task and it will appear here</string>
+    <string name="empty_today">Nothing urgent today</string>
+    <string name="empty_today_sub">Tasks with overdue, high-priority or close deadlines will appear here</string>
+    <string name="empty_search_sub">Try another search query</string>
+    <string name="search_tasks">Search tasks</string>
 
     <!-- Add task dialog -->
     <string name="new_task">New Task</string>
@@ -92,4 +97,9 @@
     <string name="reminder_notification_text_with_due">Deadline: %1$s. Finish this task.</string>
     <string name="cleanup_notification_title">Task removed</string>
     <string name="cleanup_notification_text">“%1$s” was completed and removed after 24 hours.</string>
+
+    <!-- Widget -->
+    <string name="widget_title">TaskWave Today</string>
+    <string name="widget_empty">No active tasks</string>
+    <string name="widget_more">+%1$d more</string>
 </resources>
