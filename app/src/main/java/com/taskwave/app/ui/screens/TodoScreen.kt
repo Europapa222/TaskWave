@@ -178,10 +178,12 @@ fun TodoScreen(vm: MainViewModel) {
             items(state.filteredItems, key = { it.id }) { item ->
                 TaskCard(
                     item = item,
+                    smartAiEnabled = state.smartAiEnabled,
                     folder = state.folders.firstOrNull { it.id == item.folderId },
                     onToggle = { vm.toggleDone(item.id) },
                     onDelete = { vm.deleteItem(item.id) },
                     onSplit = { vm.splitTask(item.id) },
+                    onManualSubtasksAdd = { rawSteps -> vm.addManualSubtasks(item.id, rawSteps) },
                     onSubtaskToggle = { subtaskId -> vm.toggleSubtask(item.id, subtaskId) }
                 )
             }
@@ -585,10 +587,12 @@ private fun EmptyState(filter: FilterType, searchQuery: String) {
 @Composable
 fun TaskCard(
     item: TodoItem,
+    smartAiEnabled: Boolean,
     folder: TaskFolder?,
     onToggle: () -> Unit,
     onDelete: () -> Unit,
     onSplit: () -> Unit,
+    onManualSubtasksAdd: (String) -> Unit,
     onSubtaskToggle: (String) -> Unit
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -599,6 +603,17 @@ fun TaskCard(
     }
     val now = System.currentTimeMillis()
     val isOverdue = !item.isDone && item.dueAt != null && item.dueAt < now
+    var showManualStepsDialog by remember { mutableStateOf(false) }
+
+    if (showManualStepsDialog) {
+        ManualSubtasksDialog(
+            onDismiss = { showManualStepsDialog = false },
+            onAdd = {
+                onManualSubtasksAdd(it)
+                showManualStepsDialog = false
+            }
+        )
+    }
 
     Card(
         modifier = Modifier
@@ -694,7 +709,9 @@ fun TaskCard(
                     Spacer(Modifier.height(6.dp))
                     Text(
                         stringResource(R.string.split_task),
-                        modifier = Modifier.clickable { onSplit() },
+                        modifier = Modifier.clickable {
+                            if (smartAiEnabled) onSplit() else showManualStepsDialog = true
+                        },
                         color = scheme.primary,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -706,6 +723,36 @@ fun TaskCard(
             }
         }
     }
+}
+
+@Composable
+private fun ManualSubtasksDialog(onDismiss: () -> Unit, onAdd: (String) -> Unit) {
+    var steps by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(24.dp),
+        title = { Text(stringResource(R.string.manual_steps_title), fontWeight = FontWeight.Bold) },
+        text = {
+            OutlinedTextField(
+                value = steps,
+                onValueChange = { steps = it },
+                label = { Text(stringResource(R.string.manual_steps_hint)) },
+                minLines = 4,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp)
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = { onAdd(steps) },
+                enabled = steps.isNotBlank(),
+                shape = RoundedCornerShape(14.dp)
+            ) { Text(stringResource(R.string.add), fontWeight = FontWeight.Bold) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        }
+    )
 }
 
 @Composable

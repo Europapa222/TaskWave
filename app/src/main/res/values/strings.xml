@@ -81,6 +81,8 @@
     <string name="anti_overload_title">Anti-overload mode</string>
     <string name="anti_overload_subtitle">Too many tasks. TaskWave shows only the 3 most important for today.</string>
     <string name="split_task">Break into steps</string>
+    <string name="manual_steps_title">Add your own steps</string>
+    <string name="manual_steps_hint">One step per line</string>
     <string name="add">Add</string>
     <string name="cancel">Cancel</string>
 
@@ -97,6 +99,11 @@
     <string name="widgets">Widgets</string>
     <string name="widgets_help_title">How to add a TaskWave widget</string>
     <string name="widgets_help_body">1. Long-press an empty place on your home screen.\n2. Tap Widgets.\n3. Find TaskWave.\n4. Choose Today, Focus task, or Progress and drag it to the screen.</string>
+    <string name="widget_preview_today_count">5 active</string>
+    <string name="widget_preview_task_1">Walk with Nadya</string>
+    <string name="widget_preview_task_2">Buy groceries</string>
+    <string name="widget_preview_focus_badge">Best next step</string>
+    <string name="widget_preview_focus_meta">Today · High priority</string>
 
     <!-- Delete -->
     <string name="delete">Delete</string>

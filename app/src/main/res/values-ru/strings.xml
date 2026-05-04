@@ -81,6 +81,8 @@
     <string name="anti_overload_title">Анти-перегруз</string>
     <string name="anti_overload_subtitle">Задач слишком много. TaskWave показывает только 3 главные на сегодня.</string>
     <string name="split_task">Разбить на шаги</string>
+    <string name="manual_steps_title">Добавить свои шаги</string>
+    <string name="manual_steps_hint">Один шаг на строку</string>
     <string name="add">Добавить</string>
     <string name="cancel">Отмена</string>
 
@@ -97,6 +99,11 @@
     <string name="widgets">Виджеты</string>
     <string name="widgets_help_title">Как добавить виджет TaskWave</string>
     <string name="widgets_help_body">1. Зажми пустое место на главном экране.\n2. Нажми «Виджеты».\n3. Найди TaskWave.\n4. Выбери «Сегодня», «Фокус-задача» или «Прогресс» и перетащи на экран.</string>
+    <string name="widget_preview_today_count">5 активных</string>
+    <string name="widget_preview_task_1">Погулять с Надей</string>
+    <string name="widget_preview_task_2">Купить продукты</string>
+    <string name="widget_preview_focus_badge">Лучший следующий шаг</string>
+    <string name="widget_preview_focus_meta">Сегодня · высокий приоритет</string>
 
     <!-- Delete -->
     <string name="delete">Удалить</string>
