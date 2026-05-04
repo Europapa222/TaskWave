@@ -119,6 +119,8 @@ fun TodoScreen(vm: MainViewModel) {
         SettingsSheet(
             darkModeOverride = state.darkModeOverride,
             onDarkModeChange = { vm.setDarkModeOverride(it) },
+            smartAiEnabled = state.smartAiEnabled,
+            onSmartAiChange = { vm.setSmartAiEnabled(it) },
             onDismiss = { vm.hideSettings() }
         )
     }
@@ -792,7 +794,6 @@ fun AddTaskDialog(
                     value = title,
                     onValueChange = { title = it },
                     label = { Text(stringResource(R.string.task_title)) },
-                    supportingText = { Text(stringResource(R.string.smart_input_hint)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp)

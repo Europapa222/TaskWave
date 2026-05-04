@@ -80,7 +80,6 @@
     <string name="motivation_stats">Серия %1$d дн. · %2$d очков · Уровень %3$d · Сегодня %4$d</string>
     <string name="anti_overload_title">Анти-перегруз</string>
     <string name="anti_overload_subtitle">Задач слишком много. TaskWave показывает только 3 главные на сегодня.</string>
-    <string name="smart_input_hint">Умный ввод: “купить продукты завтра 18:00 напомни”</string>
     <string name="split_task">Разбить на шаги</string>
     <string name="add">Добавить</string>
     <string name="cancel">Отмена</string>
@@ -92,6 +91,9 @@
     <string name="dark_mode_sub">Следовать теме системы</string>
     <string name="language">Язык</string>
     <string name="language_system">Как в системе</string>
+    <string name="smart_ai">ИИ-помощник</string>
+    <string name="smart_ai_title">Умный ввод и разбиение задач</string>
+    <string name="smart_ai_subtitle">Понимает сроки из текста задачи и делает более умные подзадачи по названию и описанию.</string>
     <string name="widgets">Виджеты</string>
     <string name="widgets_help_title">Как добавить виджет TaskWave</string>
     <string name="widgets_help_body">1. Зажми пустое место на главном экране.\n2. Нажми «Виджеты».\n3. Найди TaskWave.\n4. Выбери «Сегодня», «Фокус-задача» или «Прогресс» и перетащи на экран.</string>

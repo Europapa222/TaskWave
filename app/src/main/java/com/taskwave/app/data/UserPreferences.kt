@@ -14,11 +14,14 @@ class UserPreferences(private val context: Context) {
     companion object {
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         val DARK_MODE_OVERRIDE = stringPreferencesKey("dark_mode_override") // "system" | "light" | "dark"
+        val SMART_AI_ENABLED = booleanPreferencesKey("smart_ai_enabled")
     }
 
     val onboardingDone: Flow<Boolean> = context.dataStore.data.map { it[ONBOARDING_DONE] ?: false }
     val darkModeOverride: Flow<String> = context.dataStore.data.map { it[DARK_MODE_OVERRIDE] ?: "system" }
+    val smartAiEnabled: Flow<Boolean> = context.dataStore.data.map { it[SMART_AI_ENABLED] ?: true }
 
     suspend fun setOnboardingDone() { context.dataStore.edit { it[ONBOARDING_DONE] = true } }
     suspend fun setDarkModeOverride(value: String) { context.dataStore.edit { it[DARK_MODE_OVERRIDE] = value } }
+    suspend fun setSmartAiEnabled(value: Boolean) { context.dataStore.edit { it[SMART_AI_ENABLED] = value } }
 }
