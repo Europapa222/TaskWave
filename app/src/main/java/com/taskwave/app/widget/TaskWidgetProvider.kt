@@ -32,9 +32,14 @@ class TaskWidgetProvider : AppWidgetProvider() {
                 val tasks = TaskRepository(context).loadTasksSnapshot()
                 val activeTasks = tasks.filter { !it.isDone }.sortedWith(todayTaskComparator())
                 val manager = AppWidgetManager.getInstance(context)
-                val ids = manager.getAppWidgetIds(ComponentName(context, TaskWidgetProvider::class.java))
-                ids.forEach { id ->
+                manager.getAppWidgetIds(ComponentName(context, TaskWidgetProvider::class.java)).forEach { id ->
                     manager.updateAppWidget(id, buildViews(context, activeTasks))
+                }
+                manager.getAppWidgetIds(ComponentName(context, TaskFocusWidgetProvider::class.java)).forEach { id ->
+                    manager.updateAppWidget(id, buildFocusViews(context, activeTasks))
+                }
+                manager.getAppWidgetIds(ComponentName(context, TaskProgressWidgetProvider::class.java)).forEach { id ->
+                    manager.updateAppWidget(id, buildProgressViews(context, tasks))
                 }
             }
         }
@@ -42,6 +47,7 @@ class TaskWidgetProvider : AppWidgetProvider() {
         private fun buildViews(context: Context, tasks: List<TodoItem>): RemoteViews {
             val views = RemoteViews(context.packageName, R.layout.task_widget)
             views.setOnClickPendingIntent(R.id.widget_title, openAppIntent(context))
+            views.setTextViewText(R.id.widget_badge, tasks.size.toString())
 
             val rows = listOf(R.id.widget_task_1, R.id.widget_task_2, R.id.widget_task_3)
             rows.forEachIndexed { index, viewId ->
@@ -67,6 +73,31 @@ class TaskWidgetProvider : AppWidgetProvider() {
             return views
         }
 
+        private fun buildFocusViews(context: Context, tasks: List<TodoItem>): RemoteViews {
+            val views = RemoteViews(context.packageName, R.layout.task_focus_widget)
+            val task = tasks.firstOrNull()
+            views.setTextViewText(R.id.widget_task_1, task?.title ?: context.getString(R.string.widget_empty))
+            views.setTextViewText(R.id.widget_more, task?.let { focusMeta(context, it) }.orEmpty())
+            listOf(R.id.widget_title, R.id.widget_task_1, R.id.widget_more).forEach {
+                views.setOnClickPendingIntent(it, openAppIntent(context))
+            }
+            return views
+        }
+
+        private fun buildProgressViews(context: Context, tasks: List<TodoItem>): RemoteViews {
+            val views = RemoteViews(context.packageName, R.layout.task_progress_widget)
+            val active = tasks.count { !it.isDone }
+            val done = tasks.count { it.isDone }
+            val overdue = tasks.count { !it.isDone && it.dueAt != null && it.dueAt < System.currentTimeMillis() }
+            views.setTextViewText(R.id.widget_task_1, context.getString(R.string.widget_progress_active, active))
+            views.setTextViewText(R.id.widget_task_2, context.getString(R.string.widget_progress_done, done))
+            views.setTextViewText(R.id.widget_task_3, context.getString(R.string.widget_progress_overdue, overdue))
+            listOf(R.id.widget_title, R.id.widget_task_1, R.id.widget_task_2, R.id.widget_task_3).forEach {
+                views.setOnClickPendingIntent(it, openAppIntent(context))
+            }
+            return views
+        }
+
         private fun openAppIntent(context: Context): PendingIntent {
             val intent = Intent(context, MainActivity::class.java).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             return PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -76,6 +107,12 @@ class TaskWidgetProvider : AppWidgetProvider() {
             val prefix = if (task.priority == Priority.HIGH) "!" else "•"
             val due = task.dueAt?.let { " · ${SimpleDateFormat("d MMM", Locale.getDefault()).format(Date(it))}" }.orEmpty()
             return "$prefix ${task.title}$due"
+        }
+
+        private fun focusMeta(context: Context, task: TodoItem): String {
+            val priority = if (task.priority == Priority.HIGH) context.getString(R.string.priority_high) else context.getString(R.string.priority_medium)
+            val due = task.dueAt?.let { SimpleDateFormat("d MMM", Locale.getDefault()).format(Date(it)) }
+            return listOfNotNull(priority, due).joinToString(" · ")
         }
 
         private fun todayTaskComparator(): Comparator<TodoItem> {
@@ -111,5 +148,17 @@ class TaskWidgetProvider : AppWidgetProvider() {
             calendar.set(Calendar.MILLISECOND, 999)
             return calendar.timeInMillis
         }
+    }
+}
+
+class TaskFocusWidgetProvider : AppWidgetProvider() {
+    override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
+        TaskWidgetProvider.refresh(context)
+    }
+}
+
+class TaskProgressWidgetProvider : AppWidgetProvider() {
+    override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
+        TaskWidgetProvider.refresh(context)
     }
 }

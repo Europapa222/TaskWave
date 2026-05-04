@@ -4,7 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -38,6 +40,7 @@ fun SettingsSheet(
             modifier = Modifier
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 48.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -132,6 +135,37 @@ fun SettingsSheet(
             ) {
                 Text(stringResource(R.string.language_system), color = scheme.onSurface, fontSize = 15.sp)
                 Text("Auto", color = scheme.onSurfaceVariant, fontSize = 13.sp)
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            Text(
+                stringResource(R.string.widgets),
+                style = MaterialTheme.typography.labelLarge,
+                color = scheme.primary,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.height(12.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(scheme.surfaceVariant)
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    stringResource(R.string.widgets_help_title),
+                    color = scheme.onSurface,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp
+                )
+                Text(
+                    stringResource(R.string.widgets_help_body),
+                    color = scheme.onSurfaceVariant,
+                    fontSize = 13.sp,
+                    lineHeight = 19.sp
+                )
             }
         }
     }

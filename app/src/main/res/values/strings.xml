@@ -86,6 +86,9 @@
     <string name="dark_mode_sub">Follow system theme</string>
     <string name="language">Language</string>
     <string name="language_system">System default</string>
+    <string name="widgets">Widgets</string>
+    <string name="widgets_help_title">How to add a TaskWave widget</string>
+    <string name="widgets_help_body">1. Long-press an empty place on your home screen.\n2. Tap Widgets.\n3. Find TaskWave.\n4. Choose Today, Focus task, or Progress and drag it to the screen.</string>
 
     <!-- Delete -->
     <string name="delete">Delete</string>
@@ -100,6 +103,11 @@
 
     <!-- Widget -->
     <string name="widget_title">TaskWave Today</string>
+    <string name="widget_focus_title">Focus task</string>
+    <string name="widget_progress_title">Progress</string>
     <string name="widget_empty">No active tasks</string>
     <string name="widget_more">+%1$d more</string>
+    <string name="widget_progress_active">Active\n%1$d</string>
+    <string name="widget_progress_done">Done\n%1$d</string>
+    <string name="widget_progress_overdue">Overdue: %1$d</string>
 </resources>
