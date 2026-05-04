@@ -9,14 +9,16 @@ import com.taskwave.app.data.TaskRepository
 import com.taskwave.app.data.TodoItem
 import com.taskwave.app.data.UserPreferences
 import com.taskwave.app.notifications.ReminderScheduler
+import com.taskwave.app.widget.TaskWidgetProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
-enum class FilterType { ALL, ACTIVE, DONE }
+enum class FilterType { TODAY, ALL, ACTIVE, DONE }
 
 // "system" | "light" | "dark"
 data class AppUiState(
@@ -24,6 +26,7 @@ data class AppUiState(
     val folders: List<TaskFolder> = emptyList(),
     val selectedFolderId: String? = null,
     val filter: FilterType = FilterType.ALL,
+    val searchQuery: String = "",
     val showAddDialog: Boolean = false,
     val showFolderDialog: Boolean = false,
     val showSettings: Boolean = false,
@@ -34,10 +37,19 @@ data class AppUiState(
     val filteredItems: List<TodoItem>
         get() {
             val byFolder = selectedFolderId?.let { folderId -> items.filter { it.folderId == folderId } } ?: items
-            return when (filter) {
+            val byFilter = when (filter) {
+                FilterType.TODAY -> byFolder.filter { !it.isDone }.sortedWith(todayTaskComparator())
                 FilterType.ALL -> byFolder
                 FilterType.ACTIVE -> byFolder.filter { !it.isDone }
                 FilterType.DONE -> byFolder.filter { it.isDone }
+            }
+            val query = searchQuery.trim()
+            if (query.isBlank()) return byFilter
+            return byFilter.filter { task ->
+                val folderName = folders.firstOrNull { it.id == task.folderId }?.name.orEmpty()
+                task.title.contains(query, ignoreCase = true) ||
+                    task.description.contains(query, ignoreCase = true) ||
+                    folderName.contains(query, ignoreCase = true)
             }
         }
     val doneCount get() = items.count { it.isDone }
@@ -67,6 +79,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _state.update {
                     newState.copy(
                         filter = it.filter,
+                        searchQuery = it.searchQuery,
                         selectedFolderId = it.selectedFolderId.takeIf { folderId -> newState.folders.any { folder -> folder.id == folderId } },
                         showAddDialog = it.showAddDialog,
                         showFolderDialog = it.showFolderDialog,
@@ -79,7 +92,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun persistTasks(tasks: List<TodoItem>) {
-        viewModelScope.launch { repo.saveTasks(tasks) }
+        viewModelScope.launch {
+            repo.saveTasks(tasks)
+            TaskWidgetProvider.refresh(getApplication())
+        }
     }
 
     private fun persistFolders(folders: List<TaskFolder>) {
@@ -154,6 +170,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun selectFolder(folderId: String?) = _state.update { it.copy(selectedFolderId = folderId) }
     fun setFilter(filter: FilterType) = _state.update { it.copy(filter = filter) }
+    fun setSearchQuery(query: String) = _state.update { it.copy(searchQuery = query) }
     fun showAddDialog() = _state.update { it.copy(showAddDialog = true) }
     fun hideAddDialog() = _state.update { it.copy(showAddDialog = false) }
     fun showFolderDialog() = _state.update { it.copy(showFolderDialog = true) }
@@ -167,4 +184,38 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _state.update { it.copy(darkModeOverride = value) }
         }
     }
+}
+
+private fun todayTaskComparator(): Comparator<TodoItem> {
+    val now = System.currentTimeMillis()
+    val endOfToday = endOfTodayMillis(now)
+    return compareBy<TodoItem> {
+        when {
+            it.dueAt != null && it.dueAt < now -> 0
+            it.priority == Priority.HIGH -> 1
+            it.dueAt != null && it.dueAt <= endOfToday -> 2
+            it.dueAt != null -> 3
+            else -> 4
+        }
+    }.thenBy { it.dueAt ?: Long.MAX_VALUE }
+        .thenBy { priorityRank(it.priority) }
+        .thenBy { it.createdAt }
+}
+
+private fun priorityRank(priority: Priority): Int {
+    return when (priority) {
+        Priority.HIGH -> 0
+        Priority.MEDIUM -> 1
+        Priority.LOW -> 2
+    }
+}
+
+private fun endOfTodayMillis(now: Long): Long {
+    val calendar = Calendar.getInstance()
+    calendar.timeInMillis = now
+    calendar.set(Calendar.HOUR_OF_DAY, 23)
+    calendar.set(Calendar.MINUTE, 59)
+    calendar.set(Calendar.SECOND, 59)
+    calendar.set(Calendar.MILLISECOND, 999)
+    return calendar.timeInMillis
 }

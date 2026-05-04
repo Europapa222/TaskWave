@@ -22,6 +22,7 @@
     <string name="percent_done">%1$d%% выполнено</string>
 
     <!-- Filters -->
+    <string name="filter_today">Сегодня</string>
     <string name="filter_all">Все</string>
     <string name="filter_active">Активные</string>
     <string name="filter_done">Готово</string>
@@ -39,6 +40,10 @@
     <string name="empty_active_sub">Отдыхай, ты справился!</string>
     <string name="empty_done">Нет выполненных задач</string>
     <string name="empty_done_sub">Выполни задачу — она появится здесь</string>
+    <string name="empty_today">Сегодня срочного нет</string>
+    <string name="empty_today_sub">Здесь будут просроченные, важные и ближайшие задачи</string>
+    <string name="empty_search_sub">Попробуй другой поисковый запрос</string>
+    <string name="search_tasks">Поиск задач</string>
 
     <!-- Add task dialog -->
     <string name="new_task">Новая задача</string>
@@ -92,4 +97,9 @@
     <string name="reminder_notification_text_with_due">Срок: %1$s. Пора завершить задачу.</string>
     <string name="cleanup_notification_title">Задача удалена</string>
     <string name="cleanup_notification_text">«%1$s» была выполнена и удалена через 24 часа.</string>
+
+    <!-- Widget -->
+    <string name="widget_title">TaskWave Сегодня</string>
+    <string name="widget_empty">Нет активных задач</string>
+    <string name="widget_more">Ещё +%1$d</string>
 </resources>

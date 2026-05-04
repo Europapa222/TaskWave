@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -140,6 +141,7 @@ fun TodoScreen(vm: MainViewModel) {
             modifier = Modifier.padding(padding)
         ) {
             item { HeaderCard(state) { vm.showSettings() } }
+            item { SearchField(state.searchQuery) { vm.setSearchQuery(it) } }
             item {
                 FolderRow(
                     folders = state.folders,
@@ -165,7 +167,7 @@ fun TodoScreen(vm: MainViewModel) {
                 }
             }
             if (state.filteredItems.isEmpty()) {
-                item { EmptyState(state.filter) }
+                item { EmptyState(state.filter, state.searchQuery) }
             }
             items(state.filteredItems, key = { it.id }) { item ->
                 TaskCard(
@@ -177,6 +179,21 @@ fun TodoScreen(vm: MainViewModel) {
             }
         }
     }
+}
+
+@Composable
+private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        label = { Text(stringResource(R.string.search_tasks)) },
+        singleLine = true,
+        leadingIcon = { Icon(Icons.Outlined.Search, null, modifier = Modifier.size(18.dp)) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        shape = RoundedCornerShape(18.dp)
+    )
 }
 
 @Composable
@@ -363,6 +380,7 @@ private fun FilterRow(currentFilter: FilterType, onFilterChange: (FilterType) ->
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         val labels = mapOf(
+            FilterType.TODAY to stringResource(R.string.filter_today),
             FilterType.ALL to stringResource(R.string.filter_all),
             FilterType.ACTIVE to stringResource(R.string.filter_active),
             FilterType.DONE to stringResource(R.string.filter_done)
@@ -448,7 +466,7 @@ private fun FocusCard(task: TodoItem, folder: TaskFolder?) {
 }
 
 @Composable
-private fun EmptyState(filter: FilterType) {
+private fun EmptyState(filter: FilterType, searchQuery: String) {
     val scheme = MaterialTheme.colorScheme
     Column(
         modifier = Modifier.fillMaxWidth().padding(vertical = 64.dp, horizontal = 32.dp),
@@ -463,6 +481,7 @@ private fun EmptyState(filter: FilterType) {
         ) {
             Icon(
                 when (filter) {
+                    FilterType.TODAY -> Icons.Outlined.Star
                     FilterType.DONE -> Icons.Outlined.CheckCircle
                     FilterType.ACTIVE -> Icons.Outlined.Star
                     FilterType.ALL -> Icons.AutoMirrored.Outlined.List
@@ -475,6 +494,7 @@ private fun EmptyState(filter: FilterType) {
         Spacer(Modifier.height(16.dp))
         Text(
             when (filter) {
+                FilterType.TODAY -> stringResource(R.string.empty_today)
                 FilterType.ALL -> stringResource(R.string.empty_all)
                 FilterType.ACTIVE -> stringResource(R.string.empty_active)
                 FilterType.DONE -> stringResource(R.string.empty_done)
@@ -486,10 +506,11 @@ private fun EmptyState(filter: FilterType) {
         Spacer(Modifier.height(6.dp))
         Text(
             when (filter) {
+                FilterType.TODAY -> stringResource(R.string.empty_today_sub)
                 FilterType.ALL -> stringResource(R.string.empty_all_sub)
                 FilterType.ACTIVE -> stringResource(R.string.empty_active_sub)
                 FilterType.DONE -> stringResource(R.string.empty_done_sub)
-            },
+            }.let { if (searchQuery.isBlank()) it else stringResource(R.string.empty_search_sub) },
             style = MaterialTheme.typography.bodyMedium,
             color = scheme.onSurfaceVariant,
             textAlign = TextAlign.Center
