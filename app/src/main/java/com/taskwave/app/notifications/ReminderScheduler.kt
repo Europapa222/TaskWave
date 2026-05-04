@@ -41,7 +41,11 @@ object ReminderScheduler {
             .putExtra(EXTRA_TASK_TITLE, title)
             .putExtra(EXTRA_TASK_DUE, dueAt ?: 0L)
 
-        scheduleAlarm(context, reminderAt, pendingIntent(context, taskId, intent))
+        alarmManager(context).set(
+            AlarmManager.RTC_WAKEUP,
+            reminderAt,
+            pendingIntent(context, taskId, intent)
+        )
     }
 
     fun cancelReminder(context: Context, taskId: String) {
@@ -55,7 +59,11 @@ object ReminderScheduler {
             .putExtra(EXTRA_TASK_ID, taskId)
             .putExtra(EXTRA_TASK_TITLE, title)
 
-        scheduleAlarm(context, completedAt + COMPLETED_TASK_TTL_MS, pendingIntent(context, "$taskId-cleanup", intent))
+        alarmManager(context).set(
+            AlarmManager.RTC_WAKEUP,
+            completedAt + COMPLETED_TASK_TTL_MS,
+            pendingIntent(context, "$taskId-cleanup", intent)
+        )
     }
 
     fun cancelCleanup(context: Context, taskId: String) {
@@ -84,17 +92,6 @@ object ReminderScheduler {
 
     private fun alarmManager(context: Context): AlarmManager {
         return context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    }
-
-    private fun scheduleAlarm(context: Context, triggerAtMillis: Long, pendingIntent: PendingIntent) {
-        val manager = alarmManager(context)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && manager.canScheduleExactAlarms()) {
-            manager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
-        } else {
-            manager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
-        }
     }
 
     private fun pendingIntent(context: Context, key: String, intent: Intent): PendingIntent {
