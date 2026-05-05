@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -67,6 +68,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -74,10 +76,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.taskwave.app.R
+import com.taskwave.app.data.DreamEnergy
 import com.taskwave.app.data.Priority
 import com.taskwave.app.data.TaskFolder
 import com.taskwave.app.data.TodoItem
 import com.taskwave.app.viewmodel.AppUiState
+import com.taskwave.app.viewmodel.DreamWorldState
 import com.taskwave.app.viewmodel.FilterType
 import com.taskwave.app.viewmodel.MainViewModel
 import java.text.SimpleDateFormat
@@ -115,6 +119,18 @@ fun TodoScreen(vm: MainViewModel) {
             onAdd = { vm.addFolder(it) }
         )
     }
+    if (state.showDreamSetup) {
+        DreamSetupDialog(
+            onDismiss = { vm.hideDreamSetup() },
+            onCreate = { dreams, companion, mood -> vm.createDreamStarterWorld(dreams, companion, mood) }
+        )
+    }
+    if (state.showQuestWizard) {
+        DreamQuestDialog(
+            onDismiss = { vm.hideQuestWizard() },
+            onAdd = { goal, mood -> vm.addDreamQuest(goal, mood) }
+        )
+    }
     if (state.showSettings) {
         SettingsSheet(
             darkModeOverride = state.darkModeOverride,
@@ -143,6 +159,7 @@ fun TodoScreen(vm: MainViewModel) {
             modifier = Modifier.padding(padding)
         ) {
             item { HeaderCard(state) { vm.showSettings() } }
+            item { DreamWorldCard(state.dreamWorld, onQuestClick = { vm.showQuestWizard() }, onSetupClick = { vm.showDreamSetup() }) }
             item { SearchField(state.searchQuery) { vm.setSearchQuery(it) } }
             item {
                 FolderRow(
@@ -242,6 +259,130 @@ private fun AntiOverloadCard(tasks: List<TodoItem>) {
             Text(stringResource(R.string.anti_overload_subtitle), color = scheme.onSurfaceVariant, fontSize = 12.sp)
             tasks.forEachIndexed { index, task ->
                 Text("${index + 1}. ${task.title}", color = scheme.onSurface, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun DreamWorldCard(
+    world: DreamWorldState,
+    onQuestClick: () -> Unit,
+    onSetupClick: () -> Unit
+) {
+    val scheme = MaterialTheme.colorScheme
+    val gradient = when (world.energy) {
+        DreamEnergy.CALM -> listOf(Color(0xFF80DEEA), Color(0xFF9575CD))
+        DreamEnergy.BRIGHT -> listOf(Color(0xFFFFD54F), Color(0xFFFF7043))
+        DreamEnergy.FOCUSED -> listOf(Color(0xFF6C63FF), Color(0xFF26C6DA))
+        DreamEnergy.SOCIAL -> listOf(Color(0xFF66BB6A), Color(0xFF42A5F5))
+    }
+    val animatedProgress by animateFloatAsState(world.progress, tween(700, easing = EaseOutCubic), label = "dream")
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        shape = RoundedCornerShape(28.dp),
+        elevation = CardDefaults.cardElevation(0.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .background(Brush.linearGradient(gradient))
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.dream_world_title),
+                        color = Color.White.copy(0.82f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = world.name,
+                        color = Color.White,
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        lineHeight = 30.sp
+                    )
+                    Text(world.subtitle, color = Color.White.copy(0.82f), fontSize = 13.sp)
+                }
+                Box(
+                    modifier = Modifier
+                        .size(58.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(0.20f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("✦", color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.ExtraBold)
+                }
+            }
+
+            LinearProgressIndicator(
+                progress = { animatedProgress },
+                modifier = Modifier.fillMaxWidth().height(7.dp).clip(CircleShape),
+                color = Color.White,
+                trackColor = Color.White.copy(0.22f)
+            )
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(0.20f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(world.companionName.take(1), color = Color.White, fontWeight = FontWeight.Black, fontSize = 20.sp)
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        stringResource(R.string.dream_companion_name, world.companionName),
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                    Text(world.companionMessage, color = Color.White.copy(0.84f), fontSize = 12.sp, lineHeight = 16.sp)
+                }
+            }
+
+            Text(world.weeklyStory, color = Color.White.copy(0.90f), fontSize = 12.sp, lineHeight = 17.sp)
+
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                world.unlockedBiomes.forEach { biome ->
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White.copy(0.18f))
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Text(biome, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(
+                    onClick = onQuestClick,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = gradient.first()),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(stringResource(R.string.dream_add_quest), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                }
+                TextButton(onClick = onSetupClick, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.dream_rebuild_world), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                }
             }
         }
     }
@@ -685,6 +826,7 @@ fun TaskCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     MetaPill(priorityLabel(item.priority), priorityColor, item.isDone)
+                    MetaPill(dreamEnergyLabel(item.dreamEnergy), dreamEnergyColor(item.dreamEnergy), item.isDone)
                     folder?.let { MetaPill(it.name, folderColors[it.colorIndex % folderColors.size], item.isDone) }
                     item.dueAt?.let {
                         MetaPill(
@@ -771,6 +913,26 @@ private fun MetaPill(label: String, color: Color, muted: Boolean) {
             color = if (muted) scheme.onSurfaceVariant else color,
             maxLines = 1
         )
+    }
+}
+
+
+@Composable
+private fun dreamEnergyLabel(energy: DreamEnergy): String {
+    return when (energy) {
+        DreamEnergy.CALM -> stringResource(R.string.dream_energy_calm)
+        DreamEnergy.BRIGHT -> stringResource(R.string.dream_energy_bright)
+        DreamEnergy.FOCUSED -> stringResource(R.string.dream_energy_focused)
+        DreamEnergy.SOCIAL -> stringResource(R.string.dream_energy_social)
+    }
+}
+
+private fun dreamEnergyColor(energy: DreamEnergy): Color {
+    return when (energy) {
+        DreamEnergy.CALM -> Color(0xFF26C6DA)
+        DreamEnergy.BRIGHT -> Color(0xFFFF7043)
+        DreamEnergy.FOCUSED -> Color(0xFF6C63FF)
+        DreamEnergy.SOCIAL -> Color(0xFF66BB6A)
     }
 }
 
@@ -984,6 +1146,136 @@ private fun ChoiceSection(title: String, content: @Composable RowScope.() -> Uni
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         content = content
     )
+}
+
+
+@Composable
+private fun DreamSetupDialog(
+    onDismiss: () -> Unit,
+    onCreate: (String, String, DreamEnergy) -> Unit
+) {
+    var dreams by remember { mutableStateOf("") }
+    var companion by remember { mutableStateOf("Луми") }
+    var mood by remember { mutableStateOf(DreamEnergy.FOCUSED) }
+    DreamFormDialog(
+        title = stringResource(R.string.dream_setup_title),
+        subtitle = stringResource(R.string.dream_setup_subtitle),
+        goalValue = dreams,
+        goalLabel = stringResource(R.string.dream_goals_hint),
+        companionValue = companion,
+        selectedMood = mood,
+        confirmLabel = stringResource(R.string.dream_create_world),
+        onGoalChange = { dreams = it },
+        onCompanionChange = { companion = it },
+        onMoodChange = { mood = it },
+        onDismiss = onDismiss,
+        onConfirm = { onCreate(dreams, companion, mood) }
+    )
+}
+
+@Composable
+private fun DreamQuestDialog(
+    onDismiss: () -> Unit,
+    onAdd: (String, DreamEnergy) -> Unit
+) {
+    var goal by remember { mutableStateOf("") }
+    var mood by remember { mutableStateOf(DreamEnergy.FOCUSED) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(28.dp),
+        title = { Text(stringResource(R.string.dream_quest_title), fontWeight = FontWeight.ExtraBold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text(stringResource(R.string.dream_quest_subtitle), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                OutlinedTextField(
+                    value = goal,
+                    onValueChange = { goal = it },
+                    label = { Text(stringResource(R.string.dream_one_goal_hint)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
+                )
+                DreamMoodChips(selected = mood, onSelect = { mood = it })
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onAdd(goal, mood) },
+                enabled = goal.isNotBlank(),
+                shape = RoundedCornerShape(14.dp)
+            ) { Text(stringResource(R.string.dream_add_quest), fontWeight = FontWeight.Bold) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
+    )
+}
+
+@Composable
+private fun DreamFormDialog(
+    title: String,
+    subtitle: String,
+    goalValue: String,
+    goalLabel: String,
+    companionValue: String,
+    selectedMood: DreamEnergy,
+    confirmLabel: String,
+    onGoalChange: (String) -> Unit,
+    onCompanionChange: (String) -> Unit,
+    onMoodChange: (DreamEnergy) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(28.dp),
+        title = { Text(title, fontWeight = FontWeight.ExtraBold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                OutlinedTextField(
+                    value = goalValue,
+                    onValueChange = onGoalChange,
+                    label = { Text(goalLabel) },
+                    minLines = 3,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp)
+                )
+                OutlinedTextField(
+                    value = companionValue,
+                    onValueChange = onCompanionChange,
+                    label = { Text(stringResource(R.string.dream_companion_hint)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp)
+                )
+                DreamMoodChips(selected = selectedMood, onSelect = onMoodChange)
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                shape = RoundedCornerShape(14.dp)
+            ) { Text(confirmLabel, fontWeight = FontWeight.Bold) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
+    )
+}
+
+@Composable
+private fun DreamMoodChips(selected: DreamEnergy, onSelect: (DreamEnergy) -> Unit) {
+    ChoiceSection(stringResource(R.string.dream_energy_title)) {
+        DreamEnergy.values().forEach { energy ->
+            FilterChip(
+                selected = selected == energy,
+                onClick = { onSelect(energy) },
+                label = { Text(dreamEnergyLabel(energy), fontSize = 12.sp) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = dreamEnergyColor(energy).copy(0.16f),
+                    selectedLabelColor = dreamEnergyColor(energy)
+                ),
+                shape = RoundedCornerShape(10.dp)
+            )
+        }
+    }
 }
 
 @Composable

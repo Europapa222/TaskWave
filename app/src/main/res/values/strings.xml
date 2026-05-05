@@ -5,12 +5,16 @@
     <string name="onboarding_skip">Skip</string>
     <string name="onboarding_next">Next</string>
     <string name="onboarding_start">Get Started</string>
-    <string name="onboarding_1_title">Stay on top of your tasks</string>
-    <string name="onboarding_1_desc">Capture everything you need to do. TaskWave keeps your tasks organized and accessible.</string>
-    <string name="onboarding_2_title">Set priorities</string>
-    <string name="onboarding_2_desc">Mark tasks as high, medium or low priority so you always know what matters most.</string>
-    <string name="onboarding_3_title">Track your progress</string>
-    <string name="onboarding_3_desc">See how many tasks you have completed and stay motivated to finish what you started.</string>
+    <string name="onboarding_1_title">Build a living dream world</string>
+    <string name="onboarding_1_desc">DreamPulse turns goals, moods and real actions into a personal game world.</string>
+    <string name="onboarding_2_title">AI quests instead of boring tasks</string>
+    <string name="onboarding_2_desc">Write a dream and your companion transforms it into small story quests.</string>
+    <string name="onboarding_3_title">Your real life changes the map</string>
+    <string name="onboarding_3_desc">Every completed step unlocks zones, artifacts, biomes and weekly stories.</string>
+
+    <string name="onboarding_4_title">Grow with your companion</string>
+
+    <string name="onboarding_4_desc">Create a world, name your AI companion and keep building your future one action at a time.</string>
 
     <!-- Main screen -->
     <string name="my_tasks">My Tasks</string>
@@ -125,4 +129,23 @@
     <string name="widget_progress_active">Active\n%1$d</string>
     <string name="widget_progress_done">Done\n%1$d</string>
     <string name="widget_progress_overdue">Overdue: %1$d</string>
+
+    <!-- DreamPulse -->
+    <string name="dream_world_title">DreamPulse world</string>
+    <string name="dream_companion_name">%1$s, AI companion</string>
+    <string name="dream_add_quest">Create quest</string>
+    <string name="dream_rebuild_world">Rebuild world</string>
+    <string name="dream_setup_title">Create your living world</string>
+    <string name="dream_setup_subtitle">Write up to three dreams. DreamPulse will turn them into quests, biomes and a companion story.</string>
+    <string name="dream_goals_hint">Dreams or goals, one per line</string>
+    <string name="dream_companion_hint">Companion name</string>
+    <string name="dream_create_world">Create world</string>
+    <string name="dream_quest_title">New dream quest</string>
+    <string name="dream_quest_subtitle">Describe a real-life goal. The AI companion will turn it into a game quest.</string>
+    <string name="dream_one_goal_hint">Goal or dream</string>
+    <string name="dream_energy_title">World energy</string>
+    <string name="dream_energy_calm">Calm</string>
+    <string name="dream_energy_bright">Bright</string>
+    <string name="dream_energy_focused">Focus</string>
+    <string name="dream_energy_social">Social</string>
 </resources>

@@ -3,6 +3,7 @@ package com.taskwave.app.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.taskwave.app.data.DreamEnergy
 import com.taskwave.app.data.Priority
 import com.taskwave.app.data.ProductivityStats
 import com.taskwave.app.data.SubTask
@@ -24,6 +25,29 @@ import java.util.Locale
 enum class FilterType { TODAY, ALL, ACTIVE, DONE }
 
 // "system" | "light" | "dark"
+data class DreamWorldState(
+    val name: String,
+    val subtitle: String,
+    val energy: DreamEnergy,
+    val completedZones: Int,
+    val totalZones: Int,
+    val companionName: String,
+    val companionMessage: String,
+    val weeklyStory: String,
+    val unlockedBiomes: List<String>
+) {
+    val progress: Float get() = if (totalZones > 0) (completedZones.toFloat() / totalZones).coerceIn(0f, 1f) else 0f
+}
+
+data class DreamQuestDraft(
+    val title: String,
+    val description: String,
+    val energy: DreamEnergy,
+    val priority: Priority,
+    val folderName: String,
+    val steps: List<String>
+)
+
 data class AppUiState(
     val items: List<TodoItem> = emptyList(),
     val folders: List<TaskFolder> = emptyList(),
@@ -37,6 +61,9 @@ data class AppUiState(
     val onboardingDone: Boolean = false,
     val darkModeOverride: String = "system",
     val smartAiEnabled: Boolean = true,
+    val dreamSetupDone: Boolean = false,
+    val showDreamSetup: Boolean = false,
+    val showQuestWizard: Boolean = false,
     val isLoading: Boolean = true
 ) {
     val filteredItems: List<TodoItem>
@@ -72,7 +99,9 @@ data class AppUiState(
     val productivityLevel get() = productivity.points / 100 + 1
     val topThreeToday get() = items.filter { !it.isDone }.sortedWith(todayTaskComparator()).take(3)
     val showAntiOverload get() = filter == FilterType.TODAY && items.count { !it.isDone } > 3
+    val dreamWorld get() = buildDreamWorld(items, productivity)
 }
+
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val prefs = UserPreferences(application)
@@ -83,14 +112,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         viewModelScope.launch {
-            val appPrefs = combine(prefs.onboardingDone, prefs.darkModeOverride, prefs.smartAiEnabled) { done, dark, smartAiEnabled ->
-                Triple(done, dark, smartAiEnabled)
+            val appPrefs = combine(prefs.onboardingDone, prefs.darkModeOverride, prefs.smartAiEnabled, repo.dreamSetupDone) { done, dark, smartAiEnabled, dreamSetupDone ->
+                AppPreferences(done, dark, smartAiEnabled, dreamSetupDone)
             }
             combine(appPrefs, repo.tasks, repo.folders, repo.productivity) { appPrefsValue, tasks, folders, productivity ->
                 AppUiState(
-                    onboardingDone = appPrefsValue.first,
-                    darkModeOverride = appPrefsValue.second,
-                    smartAiEnabled = appPrefsValue.third,
+                    onboardingDone = appPrefsValue.onboardingDone,
+                    darkModeOverride = appPrefsValue.darkModeOverride,
+                    smartAiEnabled = appPrefsValue.smartAiEnabled,
+                    dreamSetupDone = appPrefsValue.dreamSetupDone,
                     items = tasks,
                     folders = folders,
                     productivity = productivity,
@@ -104,7 +134,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         selectedFolderId = it.selectedFolderId.takeIf { folderId -> newState.folders.any { folder -> folder.id == folderId } },
                         showAddDialog = it.showAddDialog,
                         showFolderDialog = it.showFolderDialog,
-                        showSettings = it.showSettings
+                        showSettings = it.showSettings,
+                        showDreamSetup = it.showDreamSetup || !newState.dreamSetupDone,
+                        showQuestWizard = it.showQuestWizard
                     )
                 }
             }
@@ -143,7 +175,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             priority = priority,
             folderId = folderId,
             dueAt = finalDueAt,
-            reminderAt = finalReminderAt
+            reminderAt = finalReminderAt,
+            dreamEnergy = inferDreamEnergy(parsed.title, trimmedDescription),
+            dreamSeed = generateDreamSeed(parsed.title, trimmedDescription)
         )
         val newItems = listOf(task) + _state.value.items
         _state.update { it.copy(items = newItems, showAddDialog = false) }
@@ -245,6 +279,60 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         persistTasks(tasks)
     }
 
+    fun createDreamStarterWorld(dreams: String, companion: String, mood: DreamEnergy) {
+        val drafts = DreamQuestFactory.createStarterQuests(dreams, mood)
+        val currentFolders = _state.value.folders
+        val newFolders = drafts.map { it.folderName }.distinct().mapIndexed { index, name ->
+            TaskFolder(name = name, colorIndex = (currentFolders.size + index) % 6)
+        }
+        val folderByName = newFolders.associateBy { it.name }
+        val tasks = drafts.map { draft ->
+            TodoItem(
+                title = draft.title,
+                description = draft.description,
+                priority = draft.priority,
+                folderId = folderByName[draft.folderName]?.id,
+                subtasks = draft.steps.map { SubTask(title = it) },
+                dreamEnergy = draft.energy,
+                dreamSeed = companion.trim().ifBlank { draft.title }
+            )
+        }
+        val updatedFolders = currentFolders + newFolders
+        val updatedTasks = tasks + _state.value.items
+        _state.update {
+            it.copy(
+                items = updatedTasks,
+                folders = updatedFolders,
+                dreamSetupDone = true,
+                showDreamSetup = false,
+                selectedFolderId = null
+            )
+        }
+        persistFolders(updatedFolders)
+        persistTasks(updatedTasks)
+        viewModelScope.launch { repo.setDreamSetupDone(true) }
+    }
+
+    fun addDreamQuest(goal: String, mood: DreamEnergy) {
+        val draft = DreamQuestFactory.createQuest(goal, mood)
+        val existingFolder = _state.value.folders.firstOrNull { it.name == draft.folderName }
+        val folder = existingFolder ?: TaskFolder(name = draft.folderName, colorIndex = _state.value.folders.size % 6)
+        val folders = if (existingFolder == null) _state.value.folders + folder else _state.value.folders
+        val task = TodoItem(
+            title = draft.title,
+            description = draft.description,
+            priority = draft.priority,
+            folderId = folder.id,
+            subtasks = draft.steps.map { SubTask(title = it) },
+            dreamEnergy = draft.energy,
+            dreamSeed = goal.trim()
+        )
+        val tasks = listOf(task) + _state.value.items
+        _state.update { it.copy(items = tasks, folders = folders, showQuestWizard = false, selectedFolderId = folder.id) }
+        persistFolders(folders)
+        persistTasks(tasks)
+    }
+
     fun selectFolder(folderId: String?) = _state.update { it.copy(selectedFolderId = folderId) }
     fun setFilter(filter: FilterType) = _state.update { it.copy(filter = filter) }
     fun setSearchQuery(query: String) = _state.update { it.copy(searchQuery = query) }
@@ -254,6 +342,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun hideFolderDialog() = _state.update { it.copy(showFolderDialog = false) }
     fun showSettings() = _state.update { it.copy(showSettings = true) }
     fun hideSettings() = _state.update { it.copy(showSettings = false) }
+    fun showDreamSetup() = _state.update { it.copy(showDreamSetup = true) }
+    fun hideDreamSetup() = _state.update { it.copy(showDreamSetup = false) }
+    fun showQuestWizard() = _state.update { it.copy(showQuestWizard = true) }
+    fun hideQuestWizard() = _state.update { it.copy(showQuestWizard = false) }
 
     fun setDarkModeOverride(value: String) {
         viewModelScope.launch {
@@ -267,6 +359,134 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             prefs.setSmartAiEnabled(value)
             _state.update { it.copy(smartAiEnabled = value) }
         }
+    }
+}
+
+private data class AppPreferences(
+    val onboardingDone: Boolean,
+    val darkModeOverride: String,
+    val smartAiEnabled: Boolean,
+    val dreamSetupDone: Boolean
+)
+
+private fun buildDreamWorld(items: List<TodoItem>, productivity: ProductivityStats): DreamWorldState {
+    val dreamTasks = items.filter { it.dreamSeed.isNotBlank() || it.subtasks.isNotEmpty() }
+    val completedZones = items.count { it.isDone } + items.sumOf { task -> task.subtasks.count { it.isDone } }
+    val totalZones = (items.size + items.sumOf { it.subtasks.size }).coerceAtLeast(1)
+    val activeEnergy = dreamTasks
+        .filter { !it.isDone }
+        .groupingBy { it.dreamEnergy }
+        .eachCount()
+        .maxByOrNull { it.value }
+        ?.key ?: DreamEnergy.FOCUSED
+    val worldName = when (activeEnergy) {
+        DreamEnergy.CALM -> "Тихая Лагуна"
+        DreamEnergy.BRIGHT -> "Солнечный Архипелаг"
+        DreamEnergy.FOCUSED -> "Город Фокуса"
+        DreamEnergy.SOCIAL -> "Остров Союзников"
+    }
+    val biomes = buildList {
+        add("Маяк старта")
+        if (completedZones >= 2) add("Сад первых побед")
+        if (completedZones >= 5) add("Район привычек")
+        if (productivity.streak >= 2) add("Мост серии")
+        if (productivity.points >= 50) add("Башня уровня ${productivity.points / 100 + 1}")
+    }
+    val message = when {
+        items.isEmpty() -> "Я проснулся. Добавь мечту — и мы построим первый остров."
+        completedZones == 0 -> "Мир уже слышит твои цели. Сделай первый шаг, чтобы зажечь маяк."
+        productivity.completedToday > 0 -> "Сегодня мир светится: ${productivity.completedToday} побед уже превратились в энергию."
+        else -> "Выбери маленькое действие — я превращу его в новый район."
+    }
+    return DreamWorldState(
+        name = worldName,
+        subtitle = "${completedZones} из ${totalZones} зон ожили",
+        energy = activeEnergy,
+        completedZones = completedZones,
+        totalZones = totalZones,
+        companionName = companionName(dreamTasks),
+        companionMessage = message,
+        weeklyStory = weeklyStory(items, completedZones, activeEnergy),
+        unlockedBiomes = biomes
+    )
+}
+
+private fun companionName(items: List<TodoItem>): String {
+    return items.firstOrNull { it.dreamSeed.isNotBlank() }?.dreamSeed
+        ?.split(" ")
+        ?.firstOrNull { it.length >= 3 }
+        ?.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+        ?: "Луми"
+}
+
+private fun weeklyStory(items: List<TodoItem>, completedZones: Int, energy: DreamEnergy): String {
+    val active = items.count { !it.isDone }
+    val tone = when (energy) {
+        DreamEnergy.CALM -> "туман стал мягче"
+        DreamEnergy.BRIGHT -> "небо наполнилось светом"
+        DreamEnergy.FOCUSED -> "башни фокуса поднялись выше"
+        DreamEnergy.SOCIAL -> "между островами появились мосты"
+    }
+    return "На этой неделе $tone: $completedZones зон ожили, а $active квестов ждут героя."
+}
+
+private fun inferDreamEnergy(title: String, description: String): DreamEnergy {
+    val text = "$title $description".lowercase(Locale.getDefault())
+    return when {
+        containsAny(text, listOf("friend", "team", "family", "друг", "команд", "сем", "помощ")) -> DreamEnergy.SOCIAL
+        containsAny(text, listOf("rest", "sleep", "calm", "сон", "отдых", "спокой", "медитац")) -> DreamEnergy.CALM
+        containsAny(text, listOf("sport", "run", "dance", "creative", "спорт", "бег", "танц", "твор", "рис")) -> DreamEnergy.BRIGHT
+        else -> DreamEnergy.FOCUSED
+    }
+}
+
+private fun generateDreamSeed(title: String, description: String): String {
+    return "$title $description"
+        .split(" ", ",", ".", "!", "?")
+        .firstOrNull { it.length >= 4 }
+        ?.trim()
+        .orEmpty()
+}
+
+private object DreamQuestFactory {
+    fun createStarterQuests(rawDreams: String, mood: DreamEnergy): List<DreamQuestDraft> {
+        val goals = rawDreams
+            .split("\n", ",", ";")
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .take(3)
+            .ifEmpty { listOf("создать полезную привычку", "стать сильнее", "выучить новый навык") }
+        return goals.map { createQuest(it, mood) }
+    }
+
+    fun createQuest(goal: String, mood: DreamEnergy): DreamQuestDraft {
+        val cleanGoal = goal.trim().ifBlank { "новая мечта" }
+        val energy = inferDreamEnergy(cleanGoal, "")
+        val finalEnergy = if (energy == DreamEnergy.FOCUSED) mood else energy
+        val realm = when (finalEnergy) {
+            DreamEnergy.CALM -> "Лагуна баланса"
+            DreamEnergy.BRIGHT -> "Архипелаг энергии"
+            DreamEnergy.FOCUSED -> "Квартал фокуса"
+            DreamEnergy.SOCIAL -> "Мост друзей"
+        }
+        val artifact = when (finalEnergy) {
+            DreamEnergy.CALM -> "Кристалл спокойствия"
+            DreamEnergy.BRIGHT -> "Искра движения"
+            DreamEnergy.FOCUSED -> "Башня концентрации"
+            DreamEnergy.SOCIAL -> "Портал поддержки"
+        }
+        return DreamQuestDraft(
+            title = "Оживить: $cleanGoal",
+            description = "ИИ-спутник превратил мечту в квест. Награда мира: $artifact.",
+            energy = finalEnergy,
+            priority = if (finalEnergy == DreamEnergy.FOCUSED) Priority.HIGH else Priority.MEDIUM,
+            folderName = realm,
+            steps = listOf(
+                "Сделать первый маленький шаг",
+                "Записать результат или ощущение",
+                "Повторить действие и открыть новую зону"
+            )
+        )
     }
 }
 

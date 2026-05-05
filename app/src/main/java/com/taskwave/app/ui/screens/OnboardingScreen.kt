@@ -24,6 +24,7 @@ private val pages = listOf(
     Page(R.string.onboarding_1_title, R.string.onboarding_1_desc),
     Page(R.string.onboarding_2_title, R.string.onboarding_2_desc),
     Page(R.string.onboarding_3_title, R.string.onboarding_3_desc),
+    Page(R.string.onboarding_4_title, R.string.onboarding_4_desc),
 )
 
 @Composable

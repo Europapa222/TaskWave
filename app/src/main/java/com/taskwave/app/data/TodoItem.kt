@@ -4,6 +4,8 @@ import java.util.UUID
 
 enum class Priority { LOW, MEDIUM, HIGH }
 
+enum class DreamEnergy { CALM, BRIGHT, FOCUSED, SOCIAL }
+
 data class TaskFolder(
     val id: String = UUID.randomUUID().toString(),
     val name: String,
@@ -28,5 +30,7 @@ data class TodoItem(
     val dueAt: Long? = null,
     val reminderAt: Long? = null,
     val completedAt: Long? = null,
-    val subtasks: List<SubTask> = emptyList()
+    val subtasks: List<SubTask> = emptyList(),
+    val dreamEnergy: DreamEnergy = DreamEnergy.FOCUSED,
+    val dreamSeed: String = ""
 )
