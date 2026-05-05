@@ -5,12 +5,16 @@
     <string name="onboarding_skip">Пропустить</string>
     <string name="onboarding_next">Далее</string>
     <string name="onboarding_start">Начать</string>
-    <string name="onboarding_1_title">Контролируй свои задачи</string>
-    <string name="onboarding_1_desc">Записывай всё, что нужно сделать. TaskWave держит твои задачи в порядке.</string>
-    <string name="onboarding_2_title">Расставляй приоритеты</string>
-    <string name="onboarding_2_desc">Отмечай задачи как высокий, средний или низкий приоритет — всегда знай, что важнее.</string>
-    <string name="onboarding_3_title">Следи за прогрессом</string>
-    <string name="onboarding_3_desc">Смотри сколько задач выполнено и двигайся к цели шаг за шагом.</string>
+    <string name="onboarding_1_title">Построй живой мир мечты</string>
+    <string name="onboarding_1_desc">DreamPulse превращает цели, настроение и реальные действия в личный игровой мир.</string>
+    <string name="onboarding_2_title">ИИ-квесты вместо скучных задач</string>
+    <string name="onboarding_2_desc">Напиши мечту — спутник превратит её в маленькие сюжетные квесты.</string>
+    <string name="onboarding_3_title">Твоя жизнь меняет карту</string>
+    <string name="onboarding_3_desc">Каждый выполненный шаг открывает зоны, артефакты, биомы и историю недели.</string>
+
+    <string name="onboarding_4_title">Расти вместе со спутником</string>
+
+    <string name="onboarding_4_desc">Создай мир, назови ИИ-спутника и строй будущее по одному действию за раз.</string>
 
     <!-- Main screen -->
     <string name="my_tasks">Мои задачи</string>
@@ -125,4 +129,23 @@
     <string name="widget_progress_active">Активно\n%1$d</string>
     <string name="widget_progress_done">Готово\n%1$d</string>
     <string name="widget_progress_overdue">Просрочено: %1$d</string>
+
+    <!-- DreamPulse -->
+    <string name="dream_world_title">Мир DreamPulse</string>
+    <string name="dream_companion_name">%1$s, ИИ-спутник</string>
+    <string name="dream_add_quest">Создать квест</string>
+    <string name="dream_rebuild_world">Пересобрать мир</string>
+    <string name="dream_setup_title">Создай живой мир</string>
+    <string name="dream_setup_subtitle">Напиши до трёх мечт. DreamPulse превратит их в квесты, биомы и историю спутника.</string>
+    <string name="dream_goals_hint">Мечты или цели, каждая с новой строки</string>
+    <string name="dream_companion_hint">Имя спутника</string>
+    <string name="dream_create_world">Создать мир</string>
+    <string name="dream_quest_title">Новый квест мечты</string>
+    <string name="dream_quest_subtitle">Опиши реальную цель. ИИ-спутник превратит её в игровой квест.</string>
+    <string name="dream_one_goal_hint">Цель или мечта</string>
+    <string name="dream_energy_title">Энергия мира</string>
+    <string name="dream_energy_calm">Спокойствие</string>
+    <string name="dream_energy_bright">Свет</string>
+    <string name="dream_energy_focused">Фокус</string>
+    <string name="dream_energy_social">Друзья</string>
 </resources>

@@ -1,6 +1,7 @@
 package com.taskwave.app.data
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -22,6 +23,7 @@ class TaskRepository(private val context: Context) {
         private val POINTS_KEY = intPreferencesKey("productivity_points")
         private val COMPLETED_TODAY_KEY = intPreferencesKey("completed_today")
         private val LAST_COMPLETION_DAY_KEY = longPreferencesKey("last_completion_day")
+        private val DREAM_SETUP_DONE_KEY = booleanPreferencesKey("dream_setup_done")
     }
 
     val tasks: Flow<List<TodoItem>> = context.tasksDataStore.data.map { prefs ->
@@ -32,6 +34,10 @@ class TaskRepository(private val context: Context) {
     val folders: Flow<List<TaskFolder>> = context.tasksDataStore.data.map { prefs ->
         val json = prefs[FOLDERS_KEY] ?: return@map defaultFolders()
         try { deserializeFolders(json) } catch (e: Exception) { defaultFolders() }
+    }
+
+    val dreamSetupDone: Flow<Boolean> = context.tasksDataStore.data.map { prefs ->
+        prefs[DREAM_SETUP_DONE_KEY] ?: false
     }
 
     val productivity: Flow<ProductivityStats> = context.tasksDataStore.data.map { prefs ->
@@ -52,6 +58,10 @@ class TaskRepository(private val context: Context) {
 
     suspend fun saveFolders(folders: List<TaskFolder>) {
         context.tasksDataStore.edit { it[FOLDERS_KEY] = serializeFolders(folders) }
+    }
+
+    suspend fun setDreamSetupDone(done: Boolean) {
+        context.tasksDataStore.edit { it[DREAM_SETUP_DONE_KEY] = done }
     }
 
     suspend fun recordCompletion(day: Long) {
@@ -88,6 +98,8 @@ class TaskRepository(private val context: Context) {
                     .put("reminderAt", task.reminderAt)
                     .put("completedAt", task.completedAt)
                     .put("subtasks", serializeSubtasks(task.subtasks))
+                    .put("dreamEnergy", task.dreamEnergy.name)
+                    .put("dreamSeed", task.dreamSeed)
             )
         }
         return array.toString()
@@ -124,7 +136,9 @@ class TaskRepository(private val context: Context) {
                     dueAt = item.optNullableLong("dueAt"),
                     reminderAt = item.optNullableLong("reminderAt"),
                     completedAt = item.optNullableLong("completedAt"),
-                    subtasks = deserializeSubtasks(item.optJSONArray("subtasks"))
+                    subtasks = deserializeSubtasks(item.optJSONArray("subtasks")),
+                    dreamEnergy = runCatching { DreamEnergy.valueOf(item.optString("dreamEnergy")) }.getOrDefault(DreamEnergy.FOCUSED),
+                    dreamSeed = item.optString("dreamSeed")
                 )
             }
         }
@@ -139,7 +153,9 @@ class TaskRepository(private val context: Context) {
                 priority = Priority.valueOf(parts[4]),
                 createdAt = parts[5].toLongOrNull() ?: System.currentTimeMillis(),
                 folderId = null,
-                subtasks = emptyList()
+                subtasks = emptyList(),
+                dreamEnergy = DreamEnergy.FOCUSED,
+                dreamSeed = ""
             )
         }
     }
